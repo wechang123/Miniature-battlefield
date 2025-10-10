@@ -10,13 +10,11 @@ namespace YajaGame.Gameplay
     public class ThrownProjectile : MonoBehaviour
     {
         [Header("Projectile Settings")]
-        [SerializeField] private float damage = 10f;
         [SerializeField] private float impactForce = 5f;
-        [SerializeField] private bool destroyOnImpact = false;
 
         [Header("Ground Detection")]
-        [SerializeField] private float groundStopVelocity = 1f; // 이 속도 이하면 바닥에 정착
-        [SerializeField] private float groundCheckDelay = 0.5f; // 던진 후 지면 체크까지 딜레이
+        [SerializeField] private float groundStopVelocity = 0.5f; // 이 속도 이하면 바닥에 정착
+        [SerializeField] private float settleDelay = 2f; // 던진 후 최소 이 시간 후 정착 가능
 
         [Header("Audio")]
         [SerializeField] private AudioClip impactSound;
@@ -48,16 +46,24 @@ namespace YajaGame.Gameplay
                 return;
             }
 
-            // Rigidbody 설정
+            // Collider 활성화
+            Collider col = GetComponent<Collider>();
+            if (col != null)
+            {
+                col.enabled = true;
+                col.isTrigger = false;
+            }
+
+            // Rigidbody 활성화 - 중요!
             _rb.isKinematic = false;
             _rb.useGravity = true;
             _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
             // 속도 설정
-            _rb.velocity = velocity;
+            _rb.linearVelocity = velocity;
 
             // 회전 추가 (날아가는 느낌)
-            _rb.angularVelocity = Random.insideUnitSphere * 5f;
+            _rb.angularVelocity = Random.insideUnitSphere * 3f;
 
             _hasLaunched = true;
             _launchTime = Time.time;
@@ -68,29 +74,20 @@ namespace YajaGame.Gameplay
                 _itemBase.enabled = false;
             }
 
-            Debug.Log($"[ThrownProjectile] 발사! 속도: {velocity}");
+            Debug.Log($"[ThrownProjectile] 발사! velocity={velocity.magnitude:F2}, isKinematic={_rb.isKinematic}, useGravity={_rb.useGravity}");
         }
 
         private void FixedUpdate()
         {
             if (!_hasLaunched) return;
 
-            // 바닥에 정착 체크
-            if (Time.time - _launchTime > groundCheckDelay)
+            // 일정 시간 후 속도가 매우 낮으면 정착
+            if (Time.time - _launchTime > settleDelay)
             {
-                CheckGroundSettle();
-            }
-        }
-
-        /// <summary>
-        /// 바닥에 정착했는지 체크
-        /// </summary>
-        private void CheckGroundSettle()
-        {
-            if (_rb.velocity.magnitude < groundStopVelocity)
-            {
-                // 바닥에 정착
-                SettleOnGround();
+                if (_rb.linearVelocity.magnitude < groundStopVelocity)
+                {
+                    SettleOnGround();
+                }
             }
         }
 
@@ -102,28 +99,26 @@ namespace YajaGame.Gameplay
             _hasLaunched = false;
 
             // Rigidbody 정지
-            _rb.velocity = Vector3.zero;
+            _rb.linearVelocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
             _rb.isKinematic = true;
 
-            // ItemBase 다시 활성화 (다시 주울 수 있게)
-            if (_itemBase != null)
+            // Collider 활성화 유지 (다시 주울 수 있게)
+            Collider col = GetComponent<Collider>();
+            if (col != null)
             {
-                _itemBase.enabled = true;
+                col.enabled = true;
             }
 
-            // 사운드 재생
-            if (groundHitSound != null)
-            {
-                AudioSource.PlayClipAtPoint(groundHitSound, transform.position);
-            }
+            // ItemBase는 활성화하지 않음 (떠다니는 애니메이션 방지)
+            // PlayerInteraction은 Collider로 감지하므로 문제없음
 
             OnGroundHit?.Invoke();
 
             // 이 컴포넌트 제거
             Destroy(this);
 
-            Debug.Log("[ThrownProjectile] 바닥에 정착!");
+            Debug.Log("[ThrownProjectile] 바닥에 정착! ItemBase는 비활성 상태 유지");
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -135,10 +130,14 @@ namespace YajaGame.Gameplay
             {
                 HandleEnemyHit(collision.gameObject);
             }
-            // 바닥/벽과 충돌
+            // 바닥/벽과 충돌 - 자연스럽게 튕기도록 속도 조절 안함
             else
             {
-                HandleGroundHit(collision);
+                // 충돌음만 재생
+                if (groundHitSound != null && _rb.linearVelocity.magnitude > 2f)
+                {
+                    AudioSource.PlayClipAtPoint(groundHitSound, transform.position, 0.3f);
+                }
             }
         }
 
@@ -148,9 +147,6 @@ namespace YajaGame.Gameplay
         private void HandleEnemyHit(GameObject enemy)
         {
             Debug.Log($"[ThrownProjectile] 적에게 명중! {enemy.name}");
-
-            // 데미지 적용 (적이 데미지를 받는 컴포넌트가 있다면)
-            // 예시: enemy.GetComponent<EnemyHealth>()?.TakeDamage(damage);
 
             // 충격력 적용
             Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
@@ -167,45 +163,6 @@ namespace YajaGame.Gameplay
             }
 
             OnEnemyHit?.Invoke(enemy);
-
-            // 파괴 또는 바닥에 떨어뜨리기
-            if (destroyOnImpact)
-            {
-                Destroy(gameObject);
-            }
-            else
-            {
-                // 속도 줄이기 (바닥에 떨어지도록)
-                _rb.velocity *= 0.3f;
-            }
-        }
-
-        /// <summary>
-        /// 바닥/벽 충돌 처리
-        /// </summary>
-        private void HandleGroundHit(Collision collision)
-        {
-            // 사운드 재생
-            if (groundHitSound != null && _rb.velocity.magnitude > 3f)
-            {
-                AudioSource.PlayClipAtPoint(groundHitSound, transform.position, 0.5f);
-            }
-
-            // 속도가 충분히 낮으면 정착
-            if (_rb.velocity.magnitude < groundStopVelocity * 2f)
-            {
-                SettleOnGround();
-            }
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            if (_hasLaunched && _rb != null)
-            {
-                // 속도 방향 표시
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawRay(transform.position, _rb.velocity);
-            }
         }
     }
 }
