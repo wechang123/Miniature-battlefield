@@ -20,6 +20,9 @@ namespace YajaGame.Gameplay
         [SerializeField] private Transform cameraTransform;
         [SerializeField] private bool autoFindCamera = true;
 
+        [Header("Animation")]
+        [SerializeField] private Animator animator;
+
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
 
@@ -36,6 +39,16 @@ namespace YajaGame.Gameplay
             _input = GetComponent<StarterAssetsInputs>();
             _trajectoryPredictor = GetComponent<TrajectoryPredictor>();
 
+            // Animator 자동 찾기 (Inspector에서 할당 안 했으면)
+            if (animator == null)
+            {
+                animator = GetComponent<Animator>();
+                if (animator == null)
+                {
+                    Debug.LogWarning("[ItemThrowSystem] Animator를 찾을 수 없습니다!");
+                }
+            }
+
             if (autoFindCamera && cameraTransform == null)
             {
                 cameraTransform = Camera.main?.transform;
@@ -51,6 +64,7 @@ namespace YajaGame.Gameplay
             // 던지기 입력 처리
             if (_input.@throw)
             {
+                Debug.Log("[ItemThrowSystem] Update: throw 입력 감지!");
                 TryThrowItem();
                 _input.@throw = false; // 입력 소모
             }
@@ -69,7 +83,7 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
-        /// 아이템 던지기 시도
+        /// 아이템 던지기 시도 (애니메이션만 트리거)
         /// </summary>
         private void TryThrowItem()
         {
@@ -78,6 +92,39 @@ namespace YajaGame.Gameplay
                 Debug.Log("[ItemThrowSystem] 들고 있는 아이템이 없습니다!");
                 return;
             }
+
+            // 던지기 애니메이션 트리거
+            if (animator != null)
+            {
+                animator.SetTrigger("Throw");
+                Debug.Log("[ItemThrowSystem] 던지기 애니메이션 트리거!");
+            }
+            else
+            {
+                Debug.LogWarning("[ItemThrowSystem] Animator가 없습니다! Animation Event가 작동하지 않습니다!");
+            }
+        }
+
+        /// <summary>
+        /// 실제 물체 던지기 (Animation Event에서 호출)
+        /// </summary>
+        public void OnThrowAnimationEvent()
+        {
+            PerformThrow();
+        }
+
+        /// <summary>
+        /// 실제 던지기 실행
+        /// </summary>
+        private void PerformThrow()
+        {
+            if (!_carrySystem.IsCarryingItem)
+            {
+                Debug.Log("[ItemThrowSystem] 던질 아이템이 없습니다!");
+                return;
+            }
+
+            Debug.Log("[ItemThrowSystem] PerformThrow 호출! 이제 물체를 던집니다!");
 
             // 아이템 놓기
             ItemBase itemToThrow = _carrySystem.ReleaseItem();
