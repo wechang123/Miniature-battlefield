@@ -17,8 +17,9 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float pickupAnimationDelay = 0.8f; // 줍기 애니메이션 타이밍
-        [SerializeField] private float pickupAnimationSpeed = 2f; // 줍기 애니메이션 속도 (1 = 원래 속도, 2 = 2배속)
+        [SerializeField] private float pickupAnimationDelay = 0.3f; // 줍기 애니메이션 타이밍 (짧게!)
+        [SerializeField] private float pickupAnimationSpeed = 3f; // 줍기 애니메이션 속도 (1 = 원래 속도, 3 = 3배속)
+        [SerializeField] private bool disableMovementDuringPickup = true; // 줍는 중 움직임 비활성화
 
         [Header("Highlight Settings")]
         [SerializeField] private bool enableHighlight = true;
@@ -155,6 +156,23 @@ namespace YajaGame.Gameplay
         {
             _isPickingUp = true;
 
+            // 줍는 중 움직임 비활성화
+            MonoBehaviour[] scriptsToDisable = null;
+            if (disableMovementDuringPickup)
+            {
+                scriptsToDisable = new MonoBehaviour[]
+                {
+                    GetComponent<StarterAssets.ThirdPersonController>(),
+                    GetComponent<CharacterController>()
+                };
+
+                foreach (var script in scriptsToDisable)
+                {
+                    if (script != null) script.enabled = false;
+                }
+                Debug.Log("[PlayerInteraction] 움직임 비활성화!");
+            }
+
             // 줍기 애니메이션 트리거
             if (animator != null)
             {
@@ -172,6 +190,16 @@ namespace YajaGame.Gameplay
 
             // 실제 줍기 실행
             PerformPickup();
+
+            // 움직임 다시 활성화
+            if (disableMovementDuringPickup && scriptsToDisable != null)
+            {
+                foreach (var script in scriptsToDisable)
+                {
+                    if (script != null) script.enabled = true;
+                }
+                Debug.Log("[PlayerInteraction] 움직임 활성화!");
+            }
 
             _isPickingUp = false;
         }
