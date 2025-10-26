@@ -21,6 +21,10 @@ namespace YajaGame.Gameplay
         [SerializeField] private float pickupAnimationSpeed = 3f; // 줍기 애니메이션 속도 (1 = 원래 속도, 3 = 3배속)
         [SerializeField] private float pickupReleaseTime = 0.2f; // 애니메이션 중 아이템을 줍는 타이밍
 
+        [Header("Audio")]
+        [SerializeField] private AudioClip pickupSound; // 줍기 사운드
+        [SerializeField] private float pickupVolume = 0.5f; // 줍기 사운드 볼륨
+
         [Header("Highlight Settings")]
         [SerializeField] private bool enableHighlight = true;
         [SerializeField] private Color highlightColor = Color.yellow;
@@ -198,6 +202,12 @@ namespace YajaGame.Gameplay
             {
                 Debug.Log("[PlayerInteraction] 줍을 아이템이 없습니다!");
                 return;
+            }
+
+            // 줍기 사운드 재생
+            if (pickupSound != null)
+            {
+                AudioSource.PlayClipAtPoint(pickupSound, transform.position, pickupVolume);
             }
 
             OnItemPickedUp?.Invoke(_nearestItem);

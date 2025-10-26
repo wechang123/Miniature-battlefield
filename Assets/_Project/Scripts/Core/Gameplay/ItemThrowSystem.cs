@@ -24,6 +24,10 @@ namespace YajaGame.Gameplay
         [SerializeField] private Animator animator;
         [SerializeField] private float throwReleaseTime = 0.3f; // 애니메이션 중 물체를 놓는 타이밍 (던지기 모션 중간)
 
+        [Header("Audio")]
+        [SerializeField] private AudioClip throwSound; // 던지기 사운드
+        [SerializeField] private float throwVolume = 0.5f; // 던지기 사운드 볼륨
+
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
 
@@ -140,6 +144,12 @@ namespace YajaGame.Gameplay
             }
 
             Debug.Log("[ItemThrowSystem] PerformThrow 호출! 이제 물체를 던집니다!");
+
+            // 던지기 사운드 재생
+            if (throwSound != null)
+            {
+                AudioSource.PlayClipAtPoint(throwSound, transform.position, throwVolume);
+            }
 
             // 아이템 놓기
             ItemBase itemToThrow = _carrySystem.ReleaseItem();
