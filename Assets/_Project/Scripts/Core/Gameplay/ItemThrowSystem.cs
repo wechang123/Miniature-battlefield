@@ -22,8 +22,9 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float throwAnimationDelay = 0.5f; // 애니메이션 후 던지는 타이밍
-        [SerializeField] private float throwAnimationSpeed = 1.5f; // 던지기 애니메이션 속도 (1 = 원래 속도)
+        [SerializeField] private float throwAnimationDelay = 0.4f; // 애니메이션 후 던지는 타이밍
+        [SerializeField] private float throwAnimationSpeed = 2f; // 던지기 애니메이션 속도 (1 = 원래 속도)
+        [SerializeField] private bool disableMovementDuringThrow = true; // 던지는 중 움직임 비활성화
 
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
@@ -113,6 +114,23 @@ namespace YajaGame.Gameplay
         {
             _isThrowingInProgress = true;
 
+            // 던지는 중 움직임 비활성화
+            MonoBehaviour[] scriptsToDisable = null;
+            if (disableMovementDuringThrow)
+            {
+                scriptsToDisable = new MonoBehaviour[]
+                {
+                    GetComponent<StarterAssets.ThirdPersonController>(),
+                    GetComponent<CharacterController>()
+                };
+
+                foreach (var script in scriptsToDisable)
+                {
+                    if (script != null) script.enabled = false;
+                }
+                Debug.Log("[ItemThrowSystem] 움직임 비활성화!");
+            }
+
             // 던지기 애니메이션 트리거
             if (animator != null)
             {
@@ -130,6 +148,16 @@ namespace YajaGame.Gameplay
 
             // 실제 던지기 실행
             PerformThrow();
+
+            // 움직임 다시 활성화
+            if (disableMovementDuringThrow && scriptsToDisable != null)
+            {
+                foreach (var script in scriptsToDisable)
+                {
+                    if (script != null) script.enabled = true;
+                }
+                Debug.Log("[ItemThrowSystem] 움직임 활성화!");
+            }
 
             _isThrowingInProgress = false;
         }
