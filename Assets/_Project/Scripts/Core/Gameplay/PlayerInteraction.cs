@@ -18,6 +18,7 @@ namespace YajaGame.Gameplay
         [Header("Animation")]
         [SerializeField] private Animator animator;
         [SerializeField] private float pickupAnimationDelay = 0.8f; // 줍기 애니메이션 타이밍
+        [SerializeField] private float pickupAnimationSpeed = 2f; // 줍기 애니메이션 속도 (1 = 원래 속도, 2 = 2배속)
 
         [Header("Highlight Settings")]
         [SerializeField] private bool enableHighlight = true;
@@ -157,11 +158,16 @@ namespace YajaGame.Gameplay
             // 줍기 애니메이션 트리거
             if (animator != null)
             {
+                // 애니메이션 속도 설정
+                animator.speed = pickupAnimationSpeed;
                 animator.SetTrigger("Pickup");
-                Debug.Log("[PlayerInteraction] 줍기 애니메이션 트리거!");
+                Debug.Log($"[PlayerInteraction] 줍기 애니메이션 트리거! (속도: {pickupAnimationSpeed}x)");
 
-                // 애니메이션 타이밍까지 대기
-                yield return new WaitForSeconds(pickupAnimationDelay);
+                // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
+                yield return new WaitForSeconds(pickupAnimationDelay / pickupAnimationSpeed);
+
+                // 애니메이션 속도 원래대로
+                animator.speed = 1f;
             }
 
             // 실제 줍기 실행

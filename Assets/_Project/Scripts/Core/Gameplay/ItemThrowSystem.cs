@@ -23,6 +23,7 @@ namespace YajaGame.Gameplay
         [Header("Animation")]
         [SerializeField] private Animator animator;
         [SerializeField] private float throwAnimationDelay = 0.5f; // 애니메이션 후 던지는 타이밍
+        [SerializeField] private float throwAnimationSpeed = 1.5f; // 던지기 애니메이션 속도 (1 = 원래 속도)
 
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
@@ -115,11 +116,16 @@ namespace YajaGame.Gameplay
             // 던지기 애니메이션 트리거
             if (animator != null)
             {
+                // 애니메이션 속도 설정
+                animator.speed = throwAnimationSpeed;
                 animator.SetTrigger("Throw");
-                Debug.Log("[ItemThrowSystem] 던지기 애니메이션 트리거!");
+                Debug.Log($"[ItemThrowSystem] 던지기 애니메이션 트리거! (속도: {throwAnimationSpeed}x)");
 
-                // 애니메이션 타이밍까지 대기
-                yield return new WaitForSeconds(throwAnimationDelay);
+                // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
+                yield return new WaitForSeconds(throwAnimationDelay / throwAnimationSpeed);
+
+                // 애니메이션 속도 원래대로
+                animator.speed = 1f;
             }
 
             // 실제 던지기 실행
