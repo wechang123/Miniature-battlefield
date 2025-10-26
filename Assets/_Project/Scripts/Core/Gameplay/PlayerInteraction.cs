@@ -55,6 +55,14 @@ namespace YajaGame.Gameplay
                     Debug.LogWarning("[PlayerInteraction] Animator를 찾을 수 없습니다!");
                 }
             }
+
+            // 배그 스타일 강제 설정 (Inspector 값 무시)
+            usePickupAnimation = true;
+            pickupAnimationDelay = 0.05f;
+            pickupAnimationSpeed = 20f;
+            lockMovementDuringPickup = true;
+
+            Debug.Log($"[PlayerInteraction] 🚀 배그 스타일 설정 강제 적용! delay={pickupAnimationDelay}, speed={pickupAnimationSpeed}x");
         }
 
         private void Update()
