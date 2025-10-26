@@ -15,6 +15,10 @@ namespace YajaGame.Gameplay
         [SerializeField] private LayerMask itemLayer = -1;
         [SerializeField] private float scanInterval = 0.2f;
 
+        [Header("Animation")]
+        [SerializeField] private Animator animator;
+        [SerializeField] private float pickupAnimationDelay = 0.8f; // 줍기 애니메이션 타이밍
+
         [Header("Highlight Settings")]
         [SerializeField] private bool enableHighlight = true;
         [SerializeField] private Color highlightColor = Color.yellow;
@@ -32,11 +36,22 @@ namespace YajaGame.Gameplay
         private Material _highlightedMaterial;
         private Renderer _highlightedRenderer;
         private Material _originalMaterial;
+        private bool _isPickingUp = false;
 
         private void Awake()
         {
             _input = GetComponent<StarterAssetsInputs>();
             _carrySystem = GetComponent<ItemCarrySystem>();
+
+            // Animator 자동 찾기
+            if (animator == null)
+            {
+                animator = GetComponent<Animator>();
+                if (animator == null)
+                {
+                    Debug.LogWarning("[PlayerInteraction] Animator를 찾을 수 없습니다!");
+                }
+            }
         }
 
         private void Update()
@@ -114,37 +129,81 @@ namespace YajaGame.Gameplay
                 return;
             }
 
+            if (_isPickingUp)
+            {
+                Debug.Log("[PlayerInteraction] 이미 줍는 중입니다!");
+                return;
+            }
+
             if (_nearestItem != null && _nearestItem.IsPickable)
             {
                 // 거리 재확인
                 float distance = Vector3.Distance(transform.position, _nearestItem.Transform.position);
                 if (distance <= interactionRange)
                 {
-                    OnItemPickedUp?.Invoke(_nearestItem);
-
-                    // ItemCarrySystem으로 아이템 들기
-                    ItemBase itemBase = _nearestItem.Transform.GetComponent<ItemBase>();
-                    if (_carrySystem != null && itemBase != null)
-                    {
-                        bool success = _carrySystem.PickupItem(itemBase);
-                        if (!success)
-                        {
-                            // 들기 실패
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        // CarrySystem이 없으면 기존 방식 (OnPickup 호출)
-                        _nearestItem.OnPickup();
-                    }
-
-                    // 하이라이트 제거
-                    RemoveHighlight();
-                    _nearestItem = null;
-                    OnItemOutOfRange?.Invoke();
+                    // 코루틴 시작
+                    StartCoroutine(PickupWithAnimation());
                 }
             }
+        }
+
+        /// <summary>
+        /// 애니메이션과 함께 줍기 실행
+        /// </summary>
+        private System.Collections.IEnumerator PickupWithAnimation()
+        {
+            _isPickingUp = true;
+
+            // 줍기 애니메이션 트리거
+            if (animator != null)
+            {
+                animator.SetTrigger("Pickup");
+                Debug.Log("[PlayerInteraction] 줍기 애니메이션 트리거!");
+
+                // 애니메이션 타이밍까지 대기
+                yield return new WaitForSeconds(pickupAnimationDelay);
+            }
+
+            // 실제 줍기 실행
+            PerformPickup();
+
+            _isPickingUp = false;
+        }
+
+        /// <summary>
+        /// 실제 줍기 실행
+        /// </summary>
+        private void PerformPickup()
+        {
+            if (_nearestItem == null || !_nearestItem.IsPickable)
+            {
+                Debug.Log("[PlayerInteraction] 줍을 아이템이 없습니다!");
+                return;
+            }
+
+            OnItemPickedUp?.Invoke(_nearestItem);
+
+            // ItemCarrySystem으로 아이템 들기
+            ItemBase itemBase = _nearestItem.Transform.GetComponent<ItemBase>();
+            if (_carrySystem != null && itemBase != null)
+            {
+                bool success = _carrySystem.PickupItem(itemBase);
+                if (!success)
+                {
+                    // 들기 실패
+                    return;
+                }
+            }
+            else
+            {
+                // CarrySystem이 없으면 기존 방식 (OnPickup 호출)
+                _nearestItem.OnPickup();
+            }
+
+            // 하이라이트 제거
+            RemoveHighlight();
+            _nearestItem = null;
+            OnItemOutOfRange?.Invoke();
         }
 
         /// <summary>
