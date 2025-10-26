@@ -18,7 +18,7 @@ namespace YajaGame.Gameplay
         [Header("Animation")]
         [SerializeField] private Animator animator;
         [SerializeField] private bool usePickupAnimation = true; // 줍기 애니메이션 사용
-        [SerializeField] private float pickupAnimationTime = 0.1f; // 줍기 완료 시간 (0.1초 = 배그 스타일)
+        [SerializeField] private float pickupReleaseTime = 0.2f; // 애니메이션 중 아이템을 줍는 타이밍
 
         [Header("Highlight Settings")]
         [SerializeField] private bool enableHighlight = true;
@@ -158,7 +158,7 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
-        /// 애니메이션과 함께 줍기 실행 (0.1초 빠른 줍기)
+        /// 애니메이션과 함께 줍기 실행 (애니메이션 중간에 아이템 줍기)
         /// </summary>
         private System.Collections.IEnumerator PickupWithAnimation()
         {
@@ -168,12 +168,13 @@ namespace YajaGame.Gameplay
             if (animator != null)
             {
                 animator.SetTrigger("Pickup");
+                Debug.Log($"[PlayerInteraction] 줍기 애니메이션 시작! {pickupReleaseTime}초 후 아이템 줍기");
             }
 
-            // 0.1초 대기
-            yield return new WaitForSeconds(pickupAnimationTime);
+            // 애니메이션 진행 중 아이템을 줍는 타이밍까지 대기
+            yield return new WaitForSeconds(pickupReleaseTime);
 
-            // 실제 줍기 실행
+            // 실제 줍기 실행 (애니메이션 중간)
             PerformPickup();
 
             _isPickingUp = false;
