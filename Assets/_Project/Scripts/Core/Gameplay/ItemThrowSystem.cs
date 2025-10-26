@@ -22,7 +22,7 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float throwAnimationTime = 0.1f; // 던지기 완료 시간 (0.1초 = 배그 스타일)
+        [SerializeField] private float throwReleaseTime = 0.3f; // 애니메이션 중 물체를 놓는 타이밍 (던지기 모션 중간)
 
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
@@ -106,7 +106,7 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
-        /// 애니메이션과 함께 던지기 실행 (0.1초 빠른 던지기)
+        /// 애니메이션과 함께 던지기 실행 (애니메이션 중간에 물체 던짐)
         /// </summary>
         private System.Collections.IEnumerator ThrowWithAnimation()
         {
@@ -116,12 +116,13 @@ namespace YajaGame.Gameplay
             if (animator != null)
             {
                 animator.SetTrigger("Throw");
+                Debug.Log($"[ItemThrowSystem] 던지기 애니메이션 시작! {throwReleaseTime}초 후 물체 던짐");
             }
 
-            // 0.1초 대기
-            yield return new WaitForSeconds(throwAnimationTime);
+            // 애니메이션 진행 중 물체를 놓는 타이밍까지 대기
+            yield return new WaitForSeconds(throwReleaseTime);
 
-            // 실제 던지기 실행
+            // 실제 던지기 실행 (애니메이션 중간)
             PerformThrow();
 
             _isThrowingInProgress = false;
