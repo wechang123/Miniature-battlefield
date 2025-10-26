@@ -22,9 +22,9 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float throwAnimationDelay = 0.4f; // 애니메이션 후 던지는 타이밍
-        [SerializeField] private float throwAnimationSpeed = 2f; // 던지기 애니메이션 속도 (1 = 원래 속도)
-        [SerializeField] private bool disableMovementDuringThrow = true; // 던지는 중 움직임 비활성화
+        [SerializeField] private float throwAnimationDelay = 0.1f; // 애니메이션 후 던지는 타이밍 (배그 스타일: 초고속)
+        [SerializeField] private float throwAnimationSpeed = 15f; // 던지기 애니메이션 속도 (배그 스타일: 15배속)
+        [SerializeField] private bool lockMovementDuringThrow = true; // 던지는 중 움직임 완전 차단
 
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
@@ -108,56 +108,49 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
-        /// 애니메이션과 함께 던지기 실행
+        /// 애니메이션과 함께 던지기 실행 (배그 스타일: 초고속)
         /// </summary>
         private System.Collections.IEnumerator ThrowWithAnimation()
         {
             _isThrowingInProgress = true;
 
-            // 던지는 중 움직임 비활성화
+            // 던지는 중 움직임 완전 차단
             StarterAssetsInputs inputScript = null;
-            if (disableMovementDuringThrow)
+            CharacterController characterController = null;
+
+            if (lockMovementDuringThrow)
             {
                 inputScript = GetComponent<StarterAssetsInputs>();
+                characterController = GetComponent<CharacterController>();
 
+                // 모든 입력 초기화
                 if (inputScript != null)
                 {
-                    // 모든 입력 초기화
                     inputScript.move = Vector2.zero;
                     inputScript.look = Vector2.zero;
                     inputScript.jump = false;
                     inputScript.sprint = false;
                 }
 
-                Debug.Log("[ItemThrowSystem] 움직임 비활성화!");
+                // CharacterController 비활성화 (움직임과 중력 완전 차단)
+                if (characterController != null)
+                {
+                    characterController.enabled = false;
+                }
+
+                Debug.Log("[ItemThrowSystem] ⚠️ 움직임 완전 잠금! (배그 스타일)");
             }
 
             // 던지기 애니메이션 트리거
             if (animator != null)
             {
-                // 애니메이션 속도 설정
                 animator.speed = throwAnimationSpeed;
                 animator.SetTrigger("Throw");
-                Debug.Log($"[ItemThrowSystem] 던지기 애니메이션 트리거! (속도: {throwAnimationSpeed}x)");
+                Debug.Log($"[ItemThrowSystem] 🎯 초고속 던지기 시작! (속도: {throwAnimationSpeed}x, 완료 시간: {(throwAnimationDelay / throwAnimationSpeed) * 1000f:F0}ms)");
 
                 // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
                 float waitTime = throwAnimationDelay / throwAnimationSpeed;
-                float elapsedTime = 0f;
-
-                while (elapsedTime < waitTime)
-                {
-                    // 애니메이션 도중 계속 입력 차단
-                    if (disableMovementDuringThrow && inputScript != null)
-                    {
-                        inputScript.move = Vector2.zero;
-                        inputScript.look = Vector2.zero;
-                        inputScript.jump = false;
-                        inputScript.sprint = false;
-                    }
-
-                    elapsedTime += Time.deltaTime;
-                    yield return null;
-                }
+                yield return new WaitForSeconds(waitTime);
 
                 // 애니메이션 속도 원래대로
                 animator.speed = 1f;
@@ -166,10 +159,11 @@ namespace YajaGame.Gameplay
             // 실제 던지기 실행
             PerformThrow();
 
-            // 움직임 다시 활성화 (입력은 자동으로 다시 받아짐)
-            if (disableMovementDuringThrow)
+            // CharacterController 다시 활성화
+            if (lockMovementDuringThrow && characterController != null)
             {
-                Debug.Log("[ItemThrowSystem] 움직임 활성화!");
+                characterController.enabled = true;
+                Debug.Log("[ItemThrowSystem] ✅ 움직임 잠금 해제!");
             }
 
             _isThrowingInProgress = false;
