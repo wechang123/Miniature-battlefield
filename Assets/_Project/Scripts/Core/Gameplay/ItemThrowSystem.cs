@@ -116,14 +116,18 @@ namespace YajaGame.Gameplay
 
             // 던지는 중 움직임 비활성화
             StarterAssetsInputs inputScript = null;
-            CharacterController characterController = null;
             if (disableMovementDuringThrow)
             {
                 inputScript = GetComponent<StarterAssetsInputs>();
-                characterController = GetComponent<CharacterController>();
 
-                if (inputScript != null) inputScript.enabled = false;
-                if (characterController != null) characterController.enabled = false;
+                if (inputScript != null)
+                {
+                    // 모든 입력 초기화
+                    inputScript.move = Vector2.zero;
+                    inputScript.look = Vector2.zero;
+                    inputScript.jump = false;
+                    inputScript.sprint = false;
+                }
 
                 Debug.Log("[ItemThrowSystem] 움직임 비활성화!");
             }
@@ -137,7 +141,23 @@ namespace YajaGame.Gameplay
                 Debug.Log($"[ItemThrowSystem] 던지기 애니메이션 트리거! (속도: {throwAnimationSpeed}x)");
 
                 // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
-                yield return new WaitForSeconds(throwAnimationDelay / throwAnimationSpeed);
+                float waitTime = throwAnimationDelay / throwAnimationSpeed;
+                float elapsedTime = 0f;
+
+                while (elapsedTime < waitTime)
+                {
+                    // 애니메이션 도중 계속 입력 차단
+                    if (disableMovementDuringThrow && inputScript != null)
+                    {
+                        inputScript.move = Vector2.zero;
+                        inputScript.look = Vector2.zero;
+                        inputScript.jump = false;
+                        inputScript.sprint = false;
+                    }
+
+                    elapsedTime += Time.deltaTime;
+                    yield return null;
+                }
 
                 // 애니메이션 속도 원래대로
                 animator.speed = 1f;
@@ -146,11 +166,9 @@ namespace YajaGame.Gameplay
             // 실제 던지기 실행
             PerformThrow();
 
-            // 움직임 다시 활성화
+            // 움직임 다시 활성화 (입력은 자동으로 다시 받아짐)
             if (disableMovementDuringThrow)
             {
-                if (inputScript != null) inputScript.enabled = true;
-                if (characterController != null) characterController.enabled = true;
                 Debug.Log("[ItemThrowSystem] 움직임 활성화!");
             }
 

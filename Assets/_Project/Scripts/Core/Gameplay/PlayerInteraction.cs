@@ -17,8 +17,8 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float pickupAnimationDelay = 0.3f; // 줍기 애니메이션 타이밍 (짧게!)
-        [SerializeField] private float pickupAnimationSpeed = 3f; // 줍기 애니메이션 속도 (1 = 원래 속도, 3 = 3배속)
+        [SerializeField] private float pickupAnimationDelay = 0.15f; // 줍기 애니메이션 타이밍 (매우 짧게!)
+        [SerializeField] private float pickupAnimationSpeed = 5f; // 줍기 애니메이션 속도 (1 = 원래 속도, 5 = 5배속)
         [SerializeField] private bool disableMovementDuringPickup = true; // 줍는 중 움직임 비활성화
 
         [Header("Highlight Settings")]
@@ -158,14 +158,18 @@ namespace YajaGame.Gameplay
 
             // 줍는 중 움직임 비활성화
             StarterAssetsInputs inputScript = null;
-            CharacterController characterController = null;
             if (disableMovementDuringPickup)
             {
                 inputScript = GetComponent<StarterAssetsInputs>();
-                characterController = GetComponent<CharacterController>();
 
-                if (inputScript != null) inputScript.enabled = false;
-                if (characterController != null) characterController.enabled = false;
+                if (inputScript != null)
+                {
+                    // 모든 입력 초기화
+                    inputScript.move = Vector2.zero;
+                    inputScript.look = Vector2.zero;
+                    inputScript.jump = false;
+                    inputScript.sprint = false;
+                }
 
                 Debug.Log("[PlayerInteraction] 움직임 비활성화!");
             }
@@ -179,7 +183,23 @@ namespace YajaGame.Gameplay
                 Debug.Log($"[PlayerInteraction] 줍기 애니메이션 트리거! (속도: {pickupAnimationSpeed}x)");
 
                 // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
-                yield return new WaitForSeconds(pickupAnimationDelay / pickupAnimationSpeed);
+                float waitTime = pickupAnimationDelay / pickupAnimationSpeed;
+                float elapsedTime = 0f;
+
+                while (elapsedTime < waitTime)
+                {
+                    // 애니메이션 도중 계속 입력 차단
+                    if (disableMovementDuringPickup && inputScript != null)
+                    {
+                        inputScript.move = Vector2.zero;
+                        inputScript.look = Vector2.zero;
+                        inputScript.jump = false;
+                        inputScript.sprint = false;
+                    }
+
+                    elapsedTime += Time.deltaTime;
+                    yield return null;
+                }
 
                 // 애니메이션 속도 원래대로
                 animator.speed = 1f;
@@ -188,11 +208,9 @@ namespace YajaGame.Gameplay
             // 실제 줍기 실행
             PerformPickup();
 
-            // 움직임 다시 활성화
+            // 움직임 다시 활성화 (입력은 자동으로 다시 받아짐)
             if (disableMovementDuringPickup)
             {
-                if (inputScript != null) inputScript.enabled = true;
-                if (characterController != null) characterController.enabled = true;
                 Debug.Log("[PlayerInteraction] 움직임 활성화!");
             }
 
