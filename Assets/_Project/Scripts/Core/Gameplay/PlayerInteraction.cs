@@ -18,9 +18,7 @@ namespace YajaGame.Gameplay
         [Header("Animation")]
         [SerializeField] private Animator animator;
         [SerializeField] private bool usePickupAnimation = true; // 줍기 애니메이션 사용
-        [SerializeField] private float pickupAnimationDelay = 0.05f; // 줍기 애니메이션 타이밍 (배그 스타일: 초고속)
-        [SerializeField] private float pickupAnimationSpeed = 20f; // 줍기 애니메이션 속도 (배그 스타일: 20배속)
-        [SerializeField] private bool lockMovementDuringPickup = true; // 줍는 중 움직임 완전 차단
+        [SerializeField] private float pickupAnimationTime = 0.1f; // 줍기 완료 시간 (0.1초 = 배그 스타일)
 
         [Header("Highlight Settings")]
         [SerializeField] private bool enableHighlight = true;
@@ -55,14 +53,6 @@ namespace YajaGame.Gameplay
                     Debug.LogWarning("[PlayerInteraction] Animator를 찾을 수 없습니다!");
                 }
             }
-
-            // 배그 스타일 강제 설정 (Inspector 값 무시)
-            usePickupAnimation = true;
-            pickupAnimationDelay = 0.05f;
-            pickupAnimationSpeed = 20f;
-            lockMovementDuringPickup = true;
-
-            Debug.Log($"[PlayerInteraction] 🚀 배그 스타일 설정 강제 적용! delay={pickupAnimationDelay}, speed={pickupAnimationSpeed}x");
         }
 
         private void Update()
@@ -168,64 +158,23 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
-        /// 애니메이션과 함께 줍기 실행 (배그 스타일: 초고속)
+        /// 애니메이션과 함께 줍기 실행 (0.1초 빠른 줍기)
         /// </summary>
         private System.Collections.IEnumerator PickupWithAnimation()
         {
             _isPickingUp = true;
 
-            // 줍는 중 움직임 완전 차단
-            StarterAssetsInputs inputScript = null;
-            CharacterController characterController = null;
-            MonoBehaviour[] playerScripts = null;
-
-            if (lockMovementDuringPickup)
-            {
-                inputScript = GetComponent<StarterAssetsInputs>();
-                characterController = GetComponent<CharacterController>();
-
-                // 모든 입력 초기화
-                if (inputScript != null)
-                {
-                    inputScript.move = Vector2.zero;
-                    inputScript.look = Vector2.zero;
-                    inputScript.jump = false;
-                    inputScript.sprint = false;
-                }
-
-                // CharacterController 비활성화 (움직임과 중력 완전 차단)
-                if (characterController != null)
-                {
-                    characterController.enabled = false;
-                }
-
-                Debug.Log("[PlayerInteraction] ⚠️ 움직임 완전 잠금! (배그 스타일)");
-            }
-
             // 줍기 애니메이션 트리거
             if (animator != null)
             {
-                animator.speed = pickupAnimationSpeed;
                 animator.SetTrigger("Pickup");
-                Debug.Log($"[PlayerInteraction] 🎬 초고속 줍기 시작! (속도: {pickupAnimationSpeed}x, 완료 시간: {(pickupAnimationDelay / pickupAnimationSpeed) * 1000f:F0}ms)");
-
-                // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
-                float waitTime = pickupAnimationDelay / pickupAnimationSpeed;
-                yield return new WaitForSeconds(waitTime);
-
-                // 애니메이션 속도 원래대로
-                animator.speed = 1f;
             }
+
+            // 0.1초 대기
+            yield return new WaitForSeconds(pickupAnimationTime);
 
             // 실제 줍기 실행
             PerformPickup();
-
-            // CharacterController 다시 활성화
-            if (lockMovementDuringPickup && characterController != null)
-            {
-                characterController.enabled = true;
-                Debug.Log("[PlayerInteraction] ✅ 움직임 잠금 해제!");
-            }
 
             _isPickingUp = false;
         }

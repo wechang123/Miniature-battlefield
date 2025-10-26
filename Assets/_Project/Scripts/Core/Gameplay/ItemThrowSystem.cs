@@ -22,9 +22,7 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float throwAnimationDelay = 0.1f; // 애니메이션 후 던지는 타이밍 (배그 스타일: 초고속)
-        [SerializeField] private float throwAnimationSpeed = 15f; // 던지기 애니메이션 속도 (배그 스타일: 15배속)
-        [SerializeField] private bool lockMovementDuringThrow = true; // 던지는 중 움직임 완전 차단
+        [SerializeField] private float throwAnimationTime = 0.1f; // 던지기 완료 시간 (0.1초 = 배그 스타일)
 
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
@@ -61,13 +59,6 @@ namespace YajaGame.Gameplay
                     Debug.LogWarning("[ItemThrowSystem] 카메라를 찾을 수 없습니다!");
                 }
             }
-
-            // 배그 스타일 강제 설정 (Inspector 값 무시)
-            throwAnimationDelay = 0.1f;
-            throwAnimationSpeed = 15f;
-            lockMovementDuringThrow = true;
-
-            Debug.Log($"[ItemThrowSystem] 🚀 배그 스타일 설정 강제 적용! delay={throwAnimationDelay}, speed={throwAnimationSpeed}x");
         }
 
         private void Update()
@@ -115,63 +106,23 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
-        /// 애니메이션과 함께 던지기 실행 (배그 스타일: 초고속)
+        /// 애니메이션과 함께 던지기 실행 (0.1초 빠른 던지기)
         /// </summary>
         private System.Collections.IEnumerator ThrowWithAnimation()
         {
             _isThrowingInProgress = true;
 
-            // 던지는 중 움직임 완전 차단
-            StarterAssetsInputs inputScript = null;
-            CharacterController characterController = null;
-
-            if (lockMovementDuringThrow)
-            {
-                inputScript = GetComponent<StarterAssetsInputs>();
-                characterController = GetComponent<CharacterController>();
-
-                // 모든 입력 초기화
-                if (inputScript != null)
-                {
-                    inputScript.move = Vector2.zero;
-                    inputScript.look = Vector2.zero;
-                    inputScript.jump = false;
-                    inputScript.sprint = false;
-                }
-
-                // CharacterController 비활성화 (움직임과 중력 완전 차단)
-                if (characterController != null)
-                {
-                    characterController.enabled = false;
-                }
-
-                Debug.Log("[ItemThrowSystem] ⚠️ 움직임 완전 잠금! (배그 스타일)");
-            }
-
             // 던지기 애니메이션 트리거
             if (animator != null)
             {
-                animator.speed = throwAnimationSpeed;
                 animator.SetTrigger("Throw");
-                Debug.Log($"[ItemThrowSystem] 🎯 초고속 던지기 시작! (속도: {throwAnimationSpeed}x, 완료 시간: {(throwAnimationDelay / throwAnimationSpeed) * 1000f:F0}ms)");
-
-                // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
-                float waitTime = throwAnimationDelay / throwAnimationSpeed;
-                yield return new WaitForSeconds(waitTime);
-
-                // 애니메이션 속도 원래대로
-                animator.speed = 1f;
             }
+
+            // 0.1초 대기
+            yield return new WaitForSeconds(throwAnimationTime);
 
             // 실제 던지기 실행
             PerformThrow();
-
-            // CharacterController 다시 활성화
-            if (lockMovementDuringThrow && characterController != null)
-            {
-                characterController.enabled = true;
-                Debug.Log("[ItemThrowSystem] ✅ 움직임 잠금 해제!");
-            }
 
             _isThrowingInProgress = false;
         }
