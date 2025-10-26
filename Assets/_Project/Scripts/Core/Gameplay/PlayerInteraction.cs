@@ -17,8 +17,9 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float pickupAnimationDelay = 0.15f; // 줍기 애니메이션 타이밍 (매우 짧게!)
-        [SerializeField] private float pickupAnimationSpeed = 5f; // 줍기 애니메이션 속도 (1 = 원래 속도, 5 = 5배속)
+        [SerializeField] private bool usePickupAnimation = false; // 줍기 애니메이션 사용 (false = 즉시 줍기)
+        [SerializeField] private float pickupAnimationDelay = 0.15f; // 줍기 애니메이션 타이밍
+        [SerializeField] private float pickupAnimationSpeed = 5f; // 줍기 애니메이션 속도
         [SerializeField] private bool disableMovementDuringPickup = true; // 줍는 중 움직임 비활성화
 
         [Header("Highlight Settings")]
@@ -143,8 +144,16 @@ namespace YajaGame.Gameplay
                 float distance = Vector3.Distance(transform.position, _nearestItem.Transform.position);
                 if (distance <= interactionRange)
                 {
-                    // 코루틴 시작
-                    StartCoroutine(PickupWithAnimation());
+                    if (usePickupAnimation)
+                    {
+                        // 애니메이션과 함께 줍기
+                        StartCoroutine(PickupWithAnimation());
+                    }
+                    else
+                    {
+                        // 즉시 줍기 (애니메이션 없음)
+                        PerformPickup();
+                    }
                 }
             }
         }
