@@ -20,6 +20,10 @@ namespace YajaGame.Gameplay
         [SerializeField] private Transform cameraTransform;
         [SerializeField] private bool autoFindCamera = true;
 
+        [Header("Animation")]
+        [SerializeField] private Animator animator;
+        [SerializeField] private float throwAnimationDelay = 0.5f; // 애니메이션 후 던지는 타이밍
+
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
 
@@ -29,12 +33,23 @@ namespace YajaGame.Gameplay
         private ItemCarrySystem _carrySystem;
         private StarterAssetsInputs _input;
         private TrajectoryPredictor _trajectoryPredictor;
+        private bool _isThrowingInProgress = false;
 
         private void Awake()
         {
             _carrySystem = GetComponent<ItemCarrySystem>();
             _input = GetComponent<StarterAssetsInputs>();
             _trajectoryPredictor = GetComponent<TrajectoryPredictor>();
+
+            // Animator 자동 찾기 (Inspector에서 할당 안 했으면)
+            if (animator == null)
+            {
+                animator = GetComponent<Animator>();
+                if (animator == null)
+                {
+                    Debug.LogWarning("[ItemThrowSystem] Animator를 찾을 수 없습니다!");
+                }
+            }
 
             if (autoFindCamera && cameraTransform == null)
             {
@@ -51,6 +66,7 @@ namespace YajaGame.Gameplay
             // 던지기 입력 처리
             if (_input.@throw)
             {
+                Debug.Log("[ItemThrowSystem] Update: throw 입력 감지!");
                 TryThrowItem();
                 _input.@throw = false; // 입력 소모
             }
@@ -78,6 +94,52 @@ namespace YajaGame.Gameplay
                 Debug.Log("[ItemThrowSystem] 들고 있는 아이템이 없습니다!");
                 return;
             }
+
+            if (_isThrowingInProgress)
+            {
+                Debug.Log("[ItemThrowSystem] 이미 던지는 중입니다!");
+                return;
+            }
+
+            // 코루틴 시작
+            StartCoroutine(ThrowWithAnimation());
+        }
+
+        /// <summary>
+        /// 애니메이션과 함께 던지기 실행
+        /// </summary>
+        private System.Collections.IEnumerator ThrowWithAnimation()
+        {
+            _isThrowingInProgress = true;
+
+            // 던지기 애니메이션 트리거
+            if (animator != null)
+            {
+                animator.SetTrigger("Throw");
+                Debug.Log("[ItemThrowSystem] 던지기 애니메이션 트리거!");
+
+                // 애니메이션 타이밍까지 대기
+                yield return new WaitForSeconds(throwAnimationDelay);
+            }
+
+            // 실제 던지기 실행
+            PerformThrow();
+
+            _isThrowingInProgress = false;
+        }
+
+        /// <summary>
+        /// 실제 던지기 실행
+        /// </summary>
+        private void PerformThrow()
+        {
+            if (!_carrySystem.IsCarryingItem)
+            {
+                Debug.Log("[ItemThrowSystem] 던질 아이템이 없습니다!");
+                return;
+            }
+
+            Debug.Log("[ItemThrowSystem] PerformThrow 호출! 이제 물체를 던집니다!");
 
             // 아이템 놓기
             ItemBase itemToThrow = _carrySystem.ReleaseItem();
