@@ -144,7 +144,7 @@ namespace YajaGame.Gameplay
                 float distance = Vector3.Distance(transform.position, _nearestItem.Transform.position);
                 if (distance <= interactionRange)
                 {
-                    if (usePickupAnimation)
+                    if (usePickupAnimation && animator != null)
                     {
                         // 애니메이션과 함께 줍기
                         StartCoroutine(PickupWithAnimation());
@@ -152,6 +152,7 @@ namespace YajaGame.Gameplay
                     else
                     {
                         // 즉시 줍기 (애니메이션 없음)
+                        Debug.Log("[PlayerInteraction] 즉시 줍기 실행!");
                         PerformPickup();
                     }
                 }
@@ -167,9 +168,13 @@ namespace YajaGame.Gameplay
 
             // 줍는 중 움직임 비활성화
             StarterAssetsInputs inputScript = null;
+            CharacterController characterController = null;
+            Vector3 savedVelocity = Vector3.zero;
+
             if (disableMovementDuringPickup)
             {
                 inputScript = GetComponent<StarterAssetsInputs>();
+                characterController = GetComponent<CharacterController>();
 
                 if (inputScript != null)
                 {
@@ -180,7 +185,7 @@ namespace YajaGame.Gameplay
                     inputScript.sprint = false;
                 }
 
-                Debug.Log("[PlayerInteraction] 움직임 비활성화!");
+                Debug.Log("[PlayerInteraction] 움직임 완전 차단 시작!");
             }
 
             // 줍기 애니메이션 트리거
@@ -189,7 +194,7 @@ namespace YajaGame.Gameplay
                 // 애니메이션 속도 설정
                 animator.speed = pickupAnimationSpeed;
                 animator.SetTrigger("Pickup");
-                Debug.Log($"[PlayerInteraction] 줍기 애니메이션 트리거! (속도: {pickupAnimationSpeed}x)");
+                Debug.Log($"[PlayerInteraction] 줍기 애니메이션 트리거! (속도: {pickupAnimationSpeed}x, 지연: {pickupAnimationDelay}초)");
 
                 // 애니메이션 타이밍까지 대기 (속도에 맞춰 조정)
                 float waitTime = pickupAnimationDelay / pickupAnimationSpeed;
