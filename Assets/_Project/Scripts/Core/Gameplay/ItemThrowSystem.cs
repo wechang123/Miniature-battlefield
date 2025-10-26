@@ -115,19 +115,16 @@ namespace YajaGame.Gameplay
             _isThrowingInProgress = true;
 
             // 던지는 중 움직임 비활성화
-            MonoBehaviour[] scriptsToDisable = null;
+            StarterAssetsInputs inputScript = null;
+            CharacterController characterController = null;
             if (disableMovementDuringThrow)
             {
-                scriptsToDisable = new MonoBehaviour[]
-                {
-                    GetComponent<StarterAssets.ThirdPersonController>(),
-                    GetComponent<CharacterController>()
-                };
+                inputScript = GetComponent<StarterAssetsInputs>();
+                characterController = GetComponent<CharacterController>();
 
-                foreach (var script in scriptsToDisable)
-                {
-                    if (script != null) script.enabled = false;
-                }
+                if (inputScript != null) inputScript.enabled = false;
+                if (characterController != null) characterController.enabled = false;
+
                 Debug.Log("[ItemThrowSystem] 움직임 비활성화!");
             }
 
@@ -150,12 +147,10 @@ namespace YajaGame.Gameplay
             PerformThrow();
 
             // 움직임 다시 활성화
-            if (disableMovementDuringThrow && scriptsToDisable != null)
+            if (disableMovementDuringThrow)
             {
-                foreach (var script in scriptsToDisable)
-                {
-                    if (script != null) script.enabled = true;
-                }
+                if (inputScript != null) inputScript.enabled = true;
+                if (characterController != null) characterController.enabled = true;
                 Debug.Log("[ItemThrowSystem] 움직임 활성화!");
             }
 

@@ -157,19 +157,16 @@ namespace YajaGame.Gameplay
             _isPickingUp = true;
 
             // 줍는 중 움직임 비활성화
-            MonoBehaviour[] scriptsToDisable = null;
+            StarterAssetsInputs inputScript = null;
+            CharacterController characterController = null;
             if (disableMovementDuringPickup)
             {
-                scriptsToDisable = new MonoBehaviour[]
-                {
-                    GetComponent<StarterAssets.ThirdPersonController>(),
-                    GetComponent<CharacterController>()
-                };
+                inputScript = GetComponent<StarterAssetsInputs>();
+                characterController = GetComponent<CharacterController>();
 
-                foreach (var script in scriptsToDisable)
-                {
-                    if (script != null) script.enabled = false;
-                }
+                if (inputScript != null) inputScript.enabled = false;
+                if (characterController != null) characterController.enabled = false;
+
                 Debug.Log("[PlayerInteraction] 움직임 비활성화!");
             }
 
@@ -192,12 +189,10 @@ namespace YajaGame.Gameplay
             PerformPickup();
 
             // 움직임 다시 활성화
-            if (disableMovementDuringPickup && scriptsToDisable != null)
+            if (disableMovementDuringPickup)
             {
-                foreach (var script in scriptsToDisable)
-                {
-                    if (script != null) script.enabled = true;
-                }
+                if (inputScript != null) inputScript.enabled = true;
+                if (characterController != null) characterController.enabled = true;
                 Debug.Log("[PlayerInteraction] 움직임 활성화!");
             }
 
