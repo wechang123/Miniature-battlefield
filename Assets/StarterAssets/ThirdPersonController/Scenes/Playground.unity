@@ -258,7 +258,7 @@ MonoBehaviour:
   scanInterval: 0.2
   animator: {fileID: 0}
   pickupAnimationDelay: 0.8
-  pickupAnimationSpeed: 1000
+  pickupAnimationSpeed: 5
   enableHighlight: 1
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   highlightIntensity: 1.5
