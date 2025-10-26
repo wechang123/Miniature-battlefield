@@ -61,6 +61,13 @@ namespace YajaGame.Gameplay
                     Debug.LogWarning("[ItemThrowSystem] 카메라를 찾을 수 없습니다!");
                 }
             }
+
+            // 배그 스타일 강제 설정 (Inspector 값 무시)
+            throwAnimationDelay = 0.1f;
+            throwAnimationSpeed = 15f;
+            lockMovementDuringThrow = true;
+
+            Debug.Log($"[ItemThrowSystem] 🚀 배그 스타일 설정 강제 적용! delay={throwAnimationDelay}, speed={throwAnimationSpeed}x");
         }
 
         private void Update()
