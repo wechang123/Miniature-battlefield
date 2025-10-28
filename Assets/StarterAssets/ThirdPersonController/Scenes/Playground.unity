@@ -191,12 +191,22 @@ MonoBehaviour:
   SprintSpeed: 200
   RotationSmoothTime: 0.12
   SpeedChangeRate: 10
-  LandingAudioClip: {fileID: 0}
-  FootstepAudioClips: []
+  LandingAudioClip: {fileID: 8300000, guid: 72f526a6a9890f643a88e85a61c86c8a, type: 3}
+  FootstepAudioClips:
+  - {fileID: 8300000, guid: 72f526a6a9890f643a88e85a61c86c8a, type: 3}
+  - {fileID: 8300000, guid: 85016e0f2b01da248b9663dd49a161b0, type: 3}
+  - {fileID: 8300000, guid: 186de84b3207156479abe98f4958fed0, type: 3}
+  - {fileID: 8300000, guid: 1a91fcd19acf1e54bba0945d9f390849, type: 3}
+  - {fileID: 8300000, guid: 14e8a8d2158bec840b56c54f5266e692, type: 3}
+  - {fileID: 8300000, guid: 29841e7d5bbfb5b419c9ad16ca8bc4c1, type: 3}
+  - {fileID: 8300000, guid: dd1af302b8902684d9381de1f2d3a5af, type: 3}
+  - {fileID: 8300000, guid: 67c8b33e424ccdc4486edf538ab91c5a, type: 3}
+  - {fileID: 8300000, guid: 274649b0e221539409070ebf6c18918b, type: 3}
+  - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   FootstepAudioVolume: 0.5
-  JumpHeight: 1.2
+  JumpHeight: 5
   Gravity: -15
-  JumpTimeout: 0.5
+  JumpTimeout: 0
   FallTimeout: 0.15
   Grounded: 1
   GroundedOffset: -0.14
@@ -257,8 +267,11 @@ MonoBehaviour:
     m_Bits: 4294967295
   scanInterval: 0.2
   animator: {fileID: 0}
-  pickupAnimationDelay: 0.8
+  usePickupAnimation: 1
   pickupAnimationSpeed: 5
+  pickupReleaseTime: 0.2
+  pickupSound: {fileID: 8300000, guid: 1a91fcd19acf1e54bba0945d9f390849, type: 3}
+  pickupVolume: 0.5
   enableHighlight: 1
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   highlightIntensity: 1.5
@@ -471,8 +484,9 @@ MonoBehaviour:
   cameraTransform: {fileID: 0}
   autoFindCamera: 1
   animator: {fileID: 0}
-  throwAnimationDelay: 1.3
-  throwAnimationSpeed: 1.5
+  throwReleaseTime: 1
+  throwSound: {fileID: 8300000, guid: ff697d3070687ce4583faa0561a145a2, type: 3}
+  throwVolume: 0.5
   totalThrowCount: 0
   OnItemThrown:
     m_PersistentCalls:
