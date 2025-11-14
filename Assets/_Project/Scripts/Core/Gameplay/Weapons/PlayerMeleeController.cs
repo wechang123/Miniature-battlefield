@@ -43,10 +43,10 @@ namespace YajaGame.Gameplay.Weapons
                 attackInput = true;
             }
 
-            if (useAttackButton && input != null && input.shoot)
+            if (useAttackButton && input != null && input.@throw)
             {
                 attackInput = true;
-                input.shoot = false; // 입력 소비
+                input.@throw = false; // 입력 소비
             }
 
             // 공격 시도
@@ -62,7 +62,7 @@ namespace YajaGame.Gameplay.Weapons
         public void SetMeleeWeapon(MeleeWeaponBase weapon)
         {
             meleeWeapon = weapon;
-            Debug.Log($"[PlayerMeleeController] 근접 무기 변경: {weapon != null ? weapon.name : "None"}");
+            Debug.Log($"[PlayerMeleeController] 근접 무기 변경: {(weapon != null ? weapon.name : "None")}");
         }
 
         /// <summary>
