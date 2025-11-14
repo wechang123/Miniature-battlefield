@@ -23,6 +23,12 @@ namespace YajaGame.Gameplay.Projectiles
         [SerializeField] private float fuseTime = 3f; // 퓨즈 시간 (이 시간 후 자동 폭발, -1이면 비활성화)
         [SerializeField] private bool explodeOnImpact = true; // 충돌 시 즉시 폭발
 
+        [Header("Fragment Settings")]
+        [SerializeField] private GameObject fragmentPrefab; // 파편 프리팹
+        [SerializeField] private int fragmentCount = 8; // 생성할 파편 개수
+        [SerializeField] private float fragmentForce = 5f; // 파편이 튀는 힘
+        [SerializeField] private float fragmentSpread = 1f; // 파편 퍼짐 정도
+
         private float _spawnTime;
         private bool _hasExploded = false;
 
@@ -92,8 +98,47 @@ namespace YajaGame.Gameplay.Projectiles
             // 물리적 폭발력 (Rigidbody가 있는 오브젝트에게)
             ApplyExplosionForce(explosionPoint);
 
+            // 파편 생성
+            SpawnFragments(explosionPoint);
+
             // 발사체 파괴
             DestroyProjectile();
+        }
+
+        /// <summary>
+        /// 파편 생성
+        /// </summary>
+        private void SpawnFragments(Vector3 explosionPoint)
+        {
+            if (fragmentPrefab == null || fragmentCount <= 0) return;
+
+            Debug.Log($"[EraserBomb] 파편 {fragmentCount}개 생성!");
+
+            for (int i = 0; i < fragmentCount; i++)
+            {
+                // 랜덤 방향 계산 (구 형태로 퍼짐)
+                Vector3 randomDirection = Random.insideUnitSphere.normalized;
+
+                // 위쪽으로 약간 더 튀도록 (y 값 증가)
+                randomDirection.y = Mathf.Abs(randomDirection.y) * 0.5f + 0.3f;
+
+                // 파편 생성 위치 (폭발 중심에서 약간 떨어진 곳)
+                Vector3 spawnPosition = explosionPoint + randomDirection * fragmentSpread;
+
+                // 파편 생성
+                GameObject fragment = Instantiate(fragmentPrefab, spawnPosition, Random.rotation);
+
+                // Rigidbody에 힘 적용
+                Rigidbody rb = fragment.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 force = randomDirection * fragmentForce;
+                    rb.AddForce(force, ForceMode.Impulse);
+
+                    // 랜덤 회전 추가
+                    rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
+                }
+            }
         }
 
         /// <summary>

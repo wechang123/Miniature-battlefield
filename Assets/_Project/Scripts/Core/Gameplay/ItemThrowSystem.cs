@@ -28,6 +28,9 @@ namespace YajaGame.Gameplay
         [SerializeField] private AudioClip throwSound; // 던지기 사운드
         [SerializeField] private float throwVolume = 0.5f; // 던지기 사운드 볼륨
 
+        [Header("Weapon Projectiles")]
+        [SerializeField] private GameObject eraserBombProjectilePrefab; // 지우개폭탄 발사체 프리팹
+
         [Header("Throw Statistics")]
         [SerializeField] private int totalThrowCount = 0;
 
@@ -157,28 +160,53 @@ namespace YajaGame.Gameplay
             // 던지는 방향 계산
             Vector3 throwDirection = CalculateThrowDirection();
 
-            // ThrownProjectile 컴포넌트 추가 (없으면)
-            ThrownProjectile projectile = itemToThrow.GetComponent<ThrownProjectile>();
-            if (projectile == null)
-            {
-                projectile = itemToThrow.gameObject.AddComponent<ThrownProjectile>();
-            }
+            // 지우개폭탄인지 확인
+            WeaponPartItem weaponPart = itemToThrow.GetComponent<WeaponPartItem>();
+            bool isEraserBomb = weaponPart != null && weaponPart.PartType == WeaponPartType.EraserBomb;
 
-            // 던지기
-            projectile.Launch(throwDirection * throwForce);
+            if (isEraserBomb && eraserBombProjectilePrefab != null)
+            {
+                // 지우개폭탄 발사체 생성
+                Vector3 spawnPosition = itemToThrow.transform.position;
+                GameObject projectileObj = Instantiate(eraserBombProjectilePrefab, spawnPosition, Quaternion.identity);
+
+                // Rigidbody에 힘 적용
+                Rigidbody rb = projectileObj.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = throwDirection * throwForce;
+                }
+
+                // 원래 아이템 제거
+                Destroy(itemToThrow.gameObject);
+
+                Debug.Log($"[ItemThrowSystem] 지우개폭탄 발사! 방향: {throwDirection}, 힘: {throwForce}");
+            }
+            else
+            {
+                // 일반 아이템: ThrownProjectile 컴포넌트 추가
+                ThrownProjectile projectile = itemToThrow.GetComponent<ThrownProjectile>();
+                if (projectile == null)
+                {
+                    projectile = itemToThrow.gameObject.AddComponent<ThrownProjectile>();
+                }
+
+                // 던지기
+                projectile.Launch(throwDirection * throwForce);
+            }
 
             // 통계 업데이트
             totalThrowCount++;
-            Debug.Log($"[ItemThrowSystem] {itemToThrow.ItemName} 던지기! (총 {totalThrowCount}회)");
 
-            // InventoryManager에 통계 업데이트
-            if (InventoryManager.Instance != null)
+            // InventoryManager에 통계 업데이트 (weaponPart는 위에서 이미 선언됨)
+            if (InventoryManager.Instance != null && weaponPart != null)
             {
-                WeaponPartItem weaponPart = itemToThrow.GetComponent<WeaponPartItem>();
-                if (weaponPart != null)
-                {
-                    InventoryManager.Instance.AddThrowCount(weaponPart.PartType, 1);
-                }
+                InventoryManager.Instance.AddThrowCount(weaponPart.PartType, 1);
+                Debug.Log($"[ItemThrowSystem] {weaponPart.PartType} 던지기! (총 {totalThrowCount}회)");
+            }
+            else
+            {
+                Debug.Log($"[ItemThrowSystem] 아이템 던지기! (총 {totalThrowCount}회)");
             }
 
             OnItemThrown?.Invoke(itemToThrow);

@@ -83,16 +83,34 @@ namespace YajaGame.Gameplay
         /// </summary>
         public bool PickupItem(ItemBase item)
         {
-            if (IsCarryingItem)
-            {
-                Debug.LogWarning("[ItemCarrySystem] 이미 아이템을 들고 있습니다!");
-                return false;
-            }
-
             if (item == null)
             {
                 Debug.LogWarning("[ItemCarrySystem] 들 아이템이 null입니다!");
                 return false;
+            }
+
+            // 큰 무기(WeaponPartItem) 확인
+            WeaponPartItem newWeapon = item.GetComponent<WeaponPartItem>();
+            bool isNewWeaponBig = newWeapon != null;
+
+            // 이미 아이템을 들고 있는 경우
+            if (IsCarryingItem)
+            {
+                WeaponPartItem currentWeapon = _currentItem.GetComponent<WeaponPartItem>();
+                bool isCurrentWeaponBig = currentWeapon != null;
+
+                // 둘 다 큰 무기인 경우: 현재 무기를 버리고 새 무기를 듦
+                if (isNewWeaponBig && isCurrentWeaponBig)
+                {
+                    Debug.Log($"[ItemCarrySystem] 큰 무기 교체: {_currentItem.ItemName} → {item.ItemName}");
+                    DropCurrentItem(); // 현재 무기를 바닥에 던짐
+                }
+                // 그 외의 경우: 이미 들고 있으므로 거부
+                else
+                {
+                    Debug.LogWarning("[ItemCarrySystem] 이미 아이템을 들고 있습니다!");
+                    return false;
+                }
             }
 
             _currentItem = item;
@@ -179,6 +197,32 @@ namespace YajaGame.Gameplay
 
             // 바닥에 떨어뜨리기
             droppedItem.transform.position = transform.position + Vector3.forward;
+        }
+
+        /// <summary>
+        /// 현재 무기를 바닥에 던지기 (무기 교체용)
+        /// </summary>
+        private void DropCurrentItem()
+        {
+            if (!IsCarryingItem) return;
+
+            ItemBase droppedItem = ReleaseItem();
+
+            // 아이템 애니메이션 다시 활성화
+            droppedItem.enabled = true;
+
+            // 플레이어 앞쪽에 떨어뜨리기
+            Vector3 dropPosition = transform.position + transform.forward * 1.5f;
+            droppedItem.transform.position = dropPosition;
+
+            // 약간 앞으로 던지기
+            Rigidbody itemRb = droppedItem.GetComponent<Rigidbody>();
+            if (itemRb != null)
+            {
+                itemRb.AddForce(transform.forward * 3f, ForceMode.Impulse);
+            }
+
+            Debug.Log($"[ItemCarrySystem] {droppedItem.ItemName} 바닥에 떨어뜨림!");
         }
 
         private void OnDrawGizmosSelected()
