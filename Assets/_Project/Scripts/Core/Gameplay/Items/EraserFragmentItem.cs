@@ -29,32 +29,15 @@ namespace YajaGame.Gameplay
                 rb.mass = 0.1f;
                 rb.linearDamping = 0.5f;
                 rb.constraints = RigidbodyConstraints.None; // 모든 제약 해제
-                Debug.Log($"[Fragment] Rigidbody 초기화: gravity={rb.useGravity}, kinematic={rb.isKinematic}, constraints={rb.constraints}");
+                rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // 빠른 물체도 충돌 감지
+                Debug.Log($"[Fragment] Rigidbody 초기화: collision={rb.collisionDetectionMode}");
             }
             else
             {
                 Debug.LogError("[Fragment] Rigidbody가 없습니다!");
             }
 
-            // BoxCollider 임시 비활성화 (충돌 방지)
-            BoxCollider boxCol = GetComponent<BoxCollider>();
-            if (boxCol != null)
-            {
-                boxCol.enabled = false;
-                Invoke(nameof(EnableBoxCollider), 0.1f); // 0.1초 후 활성화
-            }
-
             spawnTime = Time.time;
-        }
-
-        private void EnableBoxCollider()
-        {
-            BoxCollider boxCol = GetComponent<BoxCollider>();
-            if (boxCol != null)
-            {
-                boxCol.enabled = true;
-                Debug.Log("[Fragment] BoxCollider 활성화");
-            }
         }
 
         private void Start()
@@ -63,8 +46,7 @@ namespace YajaGame.Gameplay
             itemType = ItemType.Consumable; // 탄약은 소모품으로 분류
             itemValue = fragmentValue;
 
-            // 5초 후 줍기 가능하게 (충분히 떨어진 후)
-            Invoke(nameof(EnablePickup), 5f);
+            // EnablePickup은 FixedUpdate에서 바닥 착지 시 자동 호출됨
         }
 
         private void EnablePickup()
@@ -80,10 +62,31 @@ namespace YajaGame.Gameplay
 
         private void FixedUpdate()
         {
-            // 처음 3초 동안만 디버그 로그
-            if (Time.time - spawnTime < 3f && rb != null)
+            if (rb == null || rb.isKinematic) return; // 이미 착지했으면 리턴
+
+            // 바닥 감지 (Raycast 사용)
+            RaycastHit hit;
+            float rayDistance = 0.5f;
+
+            if (Physics.Raycast(transform.position, Vector3.down, out hit, rayDistance))
             {
-                Debug.Log($"[Fragment] Y={transform.position.y:F2}, Velocity.Y={rb.linearVelocity.y:F2}, Gravity={rb.useGravity}, Kinematic={rb.isKinematic}");
+                // 바닥 발견! Kinematic으로 전환하여 고정
+                rb.isKinematic = true;
+                rb.useGravity = false;
+
+                // 바닥에서 약간 위에 위치시키기
+                transform.position = hit.point + Vector3.up * 0.1f;
+
+                Debug.Log($"[Fragment] 바닥 착지! Y={transform.position.y:F2}, Hit={hit.collider.name}");
+
+                // 2초 후 줍기 가능하게
+                Invoke(nameof(EnablePickup), 2f);
+            }
+
+            // 디버그 로그 (처음 3초간)
+            if (Time.time - spawnTime < 3f)
+            {
+                Debug.Log($"[Fragment] Y={transform.position.y:F2}, Velocity.Y={rb.linearVelocity.y:F2}, Kinematic={rb.isKinematic}");
             }
         }
 
