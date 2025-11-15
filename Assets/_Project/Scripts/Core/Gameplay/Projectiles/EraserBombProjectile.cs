@@ -26,24 +26,37 @@ namespace YajaGame.Gameplay.Projectiles
         [Header("Fragment Settings")]
         [SerializeField] private GameObject fragmentPrefab; // 파편 프리팹
         [SerializeField] private int fragmentCount = 8; // 생성할 파편 개수
-        [SerializeField] private float fragmentForce = 5f; // 파편이 튀는 힘
-        [SerializeField] private float fragmentSpread = 1f; // 파편 퍼짐 정도
+        [SerializeField] private float fragmentForce = 2f; // 파편이 튀는 힘 (5→2로 감소)
+        [SerializeField] private float fragmentSpread = 0.5f; // 파편 퍼짐 정도 (1→0.5로 감소)
 
-        private float _spawnTime;
         private bool _hasExploded = false;
 
         protected override void Start()
         {
-            base.Start();
-            _spawnTime = Time.time;
+            base.Start(); // 부모 클래스에서 _spawnTime 설정
 
             // 폭발 시 파괴
             destroyOnHit = true;
+
+            // Player와 충돌 무시 (던질 때 즉시 폭발 방지)
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null && _collider != null)
+            {
+                Collider[] playerColliders = player.GetComponentsInChildren<Collider>();
+                foreach (Collider playerCollider in playerColliders)
+                {
+                    Physics.IgnoreCollision(_collider, playerCollider, true);
+                }
+                Debug.Log($"[EraserBomb] Player와 충돌 무시 설정 완료 ({playerColliders.Length}개 collider)");
+            }
+
+            Debug.Log($"[EraserBomb] Start 호출! explodeOnImpact={explodeOnImpact}, Collider enabled={_collider?.enabled}, Rigidbody={_rigidbody != null}");
+            Debug.Log($"[EraserBomb] Collider isTrigger={_collider?.isTrigger}, Layer={gameObject.layer}");
         }
 
         private void Update()
         {
-            // 퓨즈 시간 체크
+            // 퓨즈 시간 체크 (부모 클래스의 _spawnTime 사용)
             if (fuseTime > 0 && !_hasExploded && Time.time - _spawnTime >= fuseTime)
             {
                 Debug.Log("[EraserBomb] 퓨즈 시간 종료. 폭발!");
@@ -53,16 +66,24 @@ namespace YajaGame.Gameplay.Projectiles
 
         protected override void OnCollisionEnter(Collision collision)
         {
-            if (_hasExploded) return;
+            Debug.Log($"[EraserBomb] OnCollisionEnter 호출됨! 충돌 대상: {collision.gameObject.name}, Layer: {LayerMask.LayerToName(collision.gameObject.layer)}");
+
+            if (_hasExploded)
+            {
+                Debug.Log("[EraserBomb] 이미 폭발함. 무시.");
+                return;
+            }
 
             // 충돌 시 폭발
             if (explodeOnImpact)
             {
+                Debug.Log("[EraserBomb] explodeOnImpact=true, 폭발 시작!");
                 Vector3 explosionPoint = collision.contacts.Length > 0 ? collision.contacts[0].point : transform.position;
                 Explode(explosionPoint);
             }
             else
             {
+                Debug.Log("[EraserBomb] explodeOnImpact=false, 기본 충돌 처리");
                 base.OnCollisionEnter(collision);
             }
         }
@@ -116,23 +137,29 @@ namespace YajaGame.Gameplay.Projectiles
 
             for (int i = 0; i < fragmentCount; i++)
             {
-                // 랜덤 방향 계산 (구 형태로 퍼짐)
-                Vector3 randomDirection = Random.insideUnitSphere.normalized;
+                // 수평 방향 랜덤 계산
+                Vector3 horizontalDirection = new Vector3(
+                    Random.Range(-1f, 1f),
+                    0f,
+                    Random.Range(-1f, 1f)
+                ).normalized;
 
-                // 위쪽으로 약간 더 튀도록 (y 값 증가)
-                randomDirection.y = Mathf.Abs(randomDirection.y) * 0.5f + 0.3f;
+                // 위쪽으로 살짝 튀게 (자연스러운 폭발 효과)
+                float upwardForce = Random.Range(0.3f, 0.7f);
+                Vector3 direction = (horizontalDirection + Vector3.up * upwardForce).normalized;
 
                 // 파편 생성 위치 (폭발 중심에서 약간 떨어진 곳)
-                Vector3 spawnPosition = explosionPoint + randomDirection * fragmentSpread;
+                Vector3 spawnPosition = explosionPoint + direction * fragmentSpread;
 
                 // 파편 생성
                 GameObject fragment = Instantiate(fragmentPrefab, spawnPosition, Random.rotation);
 
-                // Rigidbody에 힘 적용
+                // Rigidbody에 힘 적용 (위로 약간 튀고 옆으로 퍼짐)
                 Rigidbody rb = fragment.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    Vector3 force = randomDirection * fragmentForce;
+                    // 수평 방향 + 위로 튀는 힘
+                    Vector3 force = horizontalDirection * fragmentForce + Vector3.up * (fragmentForce * 0.5f);
                     rb.AddForce(force, ForceMode.Impulse);
 
                     // 랜덤 회전 추가
@@ -146,7 +173,8 @@ namespace YajaGame.Gameplay.Projectiles
         /// </summary>
         private void ApplyExplosionDamage(Vector3 explosionPoint)
         {
-            if (weaponData == null) return;
+            float baseDamage = weaponData != null ? weaponData.Damage : 10f; // 기본 데미지 10
+            float knockbackForce = weaponData != null ? weaponData.KnockbackForce : 5f; // 기본 넉백 5
 
             // 범위 내 Collider 찾기
             Collider[] colliders = Physics.OverlapSphere(explosionPoint, explosionRadius, explosionLayers);
@@ -165,7 +193,7 @@ namespace YajaGame.Gameplay.Projectiles
                     damageMultiplier = Mathf.Clamp01(damageMultiplier);
 
                     // 폭발 중심은 데미지 증가
-                    float finalDamage = weaponData.Damage * explosionDamageMultiplier * damageMultiplier;
+                    float finalDamage = baseDamage * explosionDamageMultiplier * damageMultiplier;
 
                     // 방향 계산
                     Vector3 direction = (col.transform.position - explosionPoint).normalized;
@@ -177,7 +205,7 @@ namespace YajaGame.Gameplay.Projectiles
                         gameObject,
                         explosionPoint,
                         direction,
-                        weaponData.KnockbackForce * damageMultiplier
+                        knockbackForce * damageMultiplier
                     );
 
                     // 데미지 적용

@@ -92,6 +92,7 @@ namespace StarterAssets
 		public void ThrowInput(bool newThrowState)
 		{
 			@throw = newThrowState;
+			Debug.Log($"[StarterAssetsInputs] ThrowInput 호출! newThrowState={newThrowState}");
 		}
 
 		public void FireInput(bool newFireState)

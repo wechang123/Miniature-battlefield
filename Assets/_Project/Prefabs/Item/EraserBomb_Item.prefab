@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1602460381930550683}
   - component: {fileID: 4972866647088555519}
-  - component: {fileID: 4716311023361470971}
+  - component: {fileID: 8389635201468380455}
   m_Layer: 0
   m_Name: EraserBomb_Item
   m_TagString: Untagged
@@ -55,7 +55,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4716311023361470971
+--- !u!114 &8389635201468380455
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -64,10 +64,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1656920688291057335}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 169ab13da5d204bacb2020c1c74c4f41, type: 3}
+  m_Script: {fileID: 11500000, guid: 2fc13defcfe9b45e397dff72cd22b872, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemName: "\uC9C0\uC6B0\uAC1C\uD3ED\uD0C4"
+  itemName: EraserBomb
   itemType: 0
   itemIcon: {fileID: 0}
   itemValue: 1
@@ -75,10 +75,14 @@ MonoBehaviour:
   isPickable: 1
   pickupEffect: {fileID: 0}
   pickupSound: {fileID: 0}
-  bobSpeed: 2
+  bobSpeed: 1
   bobHeight: 0.3
   rotationSpeed: 50
-  bombCount: 1
+  useCustomCarrySettings: 0
+  customCarryOffset: {x: 0, y: 0, z: 0}
+  customCarryRotation: {x: 0, y: 0, z: 0}
+  customCarryScale: 1
+  weaponPartType: 1
 --- !u!1001 &6195632596595369861
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -35,6 +35,7 @@ namespace YajaGame.Gameplay
                 if (found != null)
                 {
                     carryPosition = found;
+                    Debug.Log($"[ItemCarrySystem] CarryPosition 찾음: {found.name} (위치: {found.position})");
                 }
                 else
                 {
@@ -44,8 +45,13 @@ namespace YajaGame.Gameplay
                     carryPosGO.transform.localPosition = new Vector3(0.5f, 1.5f, 0.5f); // 오른쪽 위
                     carryPosGO.transform.localRotation = Quaternion.identity;
                     carryPosition = carryPosGO.transform;
-                    Debug.Log($"[ItemCarrySystem] CarryPosition 자동 생성: {carryPosGO.transform.localPosition}");
+                    Debug.LogWarning($"[ItemCarrySystem] CarryPosition을 찾지 못해 자동 생성했습니다. 위치: {carryPosGO.transform.localPosition} (권장: Animator의 RightHand 본으로 설정하세요)");
                 }
+            }
+
+            if (carryPosition == null)
+            {
+                Debug.LogError("[ItemCarrySystem] carryPosition이 설정되지 않았습니다!");
             }
         }
 
@@ -89,23 +95,35 @@ namespace YajaGame.Gameplay
                 return false;
             }
 
-            // 큰 무기(WeaponPartItem) 확인
-            WeaponPartItem newWeapon = item.GetComponent<WeaponPartItem>();
-            bool isNewWeaponBig = newWeapon != null;
+            // 무기(WeaponPartItem 또는 MeleeWeaponItem) 확인
+            WeaponPartItem newWeaponPart = item.GetComponent<WeaponPartItem>();
+            MeleeWeaponItem newMeleeWeapon = item.GetComponent<MeleeWeaponItem>();
+            bool isNewItemWeapon = (newWeaponPart != null) || (newMeleeWeapon != null);
 
             // 이미 아이템을 들고 있는 경우
             if (IsCarryingItem)
             {
-                WeaponPartItem currentWeapon = _currentItem.GetComponent<WeaponPartItem>();
-                bool isCurrentWeaponBig = currentWeapon != null;
+                WeaponPartItem currentWeaponPart = _currentItem.GetComponent<WeaponPartItem>();
+                MeleeWeaponItem currentMeleeWeapon = _currentItem.GetComponent<MeleeWeaponItem>();
+                bool isCurrentItemWeapon = (currentWeaponPart != null) || (currentMeleeWeapon != null);
 
-                // 둘 다 큰 무기인 경우: 현재 무기를 버리고 새 무기를 듦
-                if (isNewWeaponBig && isCurrentWeaponBig)
+                // 새 아이템이 무기인 경우
+                if (isNewItemWeapon)
                 {
-                    Debug.Log($"[ItemCarrySystem] 큰 무기 교체: {_currentItem.ItemName} → {item.ItemName}");
-                    DropCurrentItem(); // 현재 무기를 바닥에 던짐
+                    // 현재도 무기를 들고 있는 경우: 자동 교체하지 않고 경고
+                    if (isCurrentItemWeapon)
+                    {
+                        Debug.LogWarning($"[ItemCarrySystem] 이미 무기를 들고 있습니다! F키를 눌러 '{_currentItem.ItemName}'을(를) 먼저 버려주세요.");
+                        return false;
+                    }
+                    // 작은 아이템을 들고 있는 경우도 거부
+                    else
+                    {
+                        Debug.LogWarning($"[ItemCarrySystem] 이미 '{_currentItem.ItemName}'을(를) 들고 있습니다! F키를 눌러 먼저 버려주세요.");
+                        return false;
+                    }
                 }
-                // 그 외의 경우: 이미 들고 있으므로 거부
+                // 새 아이템이 작은 아이템인 경우
                 else
                 {
                     Debug.LogWarning("[ItemCarrySystem] 이미 아이템을 들고 있습니다!");
@@ -116,11 +134,37 @@ namespace YajaGame.Gameplay
             _currentItem = item;
             _originalItemScale = item.transform.localScale;
 
+            Debug.Log($"[ItemCarrySystem] 아이템 원본 스케일: {_originalItemScale}");
+
             // 아이템을 CarryPosition의 자식으로 설정
             item.transform.SetParent(carryPosition);
-            item.transform.localPosition = carryOffset;
-            item.transform.localRotation = Quaternion.Euler(carryRotation);
-            item.transform.localScale = _originalItemScale * carryScale;
+
+            // 아이템별 커스텀 설정 확인 및 적용
+            if (item.UseCustomCarrySettings)
+            {
+                item.transform.localPosition = item.CustomCarryOffset;
+                item.transform.localRotation = Quaternion.Euler(item.CustomCarryRotation);
+                item.transform.localScale = _originalItemScale * item.CustomCarryScale;
+                Debug.Log($"[ItemCarrySystem] 커스텀 Carry 설정 사용: Offset={item.CustomCarryOffset}, Scale={item.CustomCarryScale}");
+            }
+            else
+            {
+                item.transform.localPosition = carryOffset;
+                item.transform.localRotation = Quaternion.Euler(carryRotation);
+                item.transform.localScale = _originalItemScale * carryScale;
+                Debug.Log($"[ItemCarrySystem] 기본 Carry 설정 사용");
+            }
+
+            Debug.Log($"[ItemCarrySystem] 설정된 위치: {item.transform.localPosition}, 스케일: {item.transform.localScale}");
+            Debug.Log($"[ItemCarrySystem] 월드 위치: {item.transform.position}");
+
+            // 렌더러 상태 확인
+            Renderer[] renderers = item.GetComponentsInChildren<Renderer>();
+            Debug.Log($"[ItemCarrySystem] 렌더러 개수: {renderers.Length}");
+            foreach (var renderer in renderers)
+            {
+                Debug.Log($"[ItemCarrySystem] 렌더러: {renderer.name}, enabled={renderer.enabled}, active={renderer.gameObject.activeSelf}");
+            }
 
             // 아이템의 물리/충돌 비활성화
             Collider itemCollider = item.GetComponent<Collider>();
@@ -134,9 +178,6 @@ namespace YajaGame.Gameplay
             {
                 itemRb.isKinematic = true;
             }
-
-            // 아이템 애니메이션 비활성화
-            item.enabled = false;
 
             OnItemPickedUp?.Invoke(item);
             Debug.Log($"[ItemCarrySystem] {item.ItemName} 들기 완료!");
@@ -192,11 +233,29 @@ namespace YajaGame.Gameplay
 
             ItemBase droppedItem = ReleaseItem();
 
+            // 무기 아이템인 경우 무기 해제 처리
+            MeleeWeaponItem meleeWeapon = droppedItem.GetComponent<MeleeWeaponItem>();
+            if (meleeWeapon != null)
+            {
+                meleeWeapon.OnUnequipped();
+            }
+
             // 아이템 애니메이션 다시 활성화
             droppedItem.enabled = true;
 
-            // 바닥에 떨어뜨리기
-            droppedItem.transform.position = transform.position + Vector3.forward;
+            // 플레이어 앞 바닥에 부드럽게 떨어뜨리기 (플레이어 forward 방향 사용)
+            Vector3 dropPosition = transform.position + transform.forward * 1.5f;
+            dropPosition.y = transform.position.y; // 같은 높이에 놓기
+            droppedItem.transform.position = dropPosition;
+
+            // Rigidbody가 있으면 약간의 힘을 가해서 자연스럽게 떨어지도록
+            Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.AddForce(transform.forward * 2f + Vector3.down * 1f, ForceMode.Impulse);
+            }
+
+            Debug.Log($"[ItemCarrySystem] {droppedItem.ItemName} F키로 버림! 위치: {dropPosition}");
         }
 
         /// <summary>

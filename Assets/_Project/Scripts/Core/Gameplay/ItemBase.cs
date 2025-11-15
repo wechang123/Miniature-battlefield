@@ -45,6 +45,12 @@ namespace YajaGame.Gameplay
         [SerializeField] protected float bobHeight = 0.3f;
         [SerializeField] protected float rotationSpeed = 50f;
 
+        [Header("Carry Settings (Optional Override)")]
+        [SerializeField] protected bool useCustomCarrySettings = false;
+        [SerializeField] protected Vector3 customCarryOffset = Vector3.zero;
+        [SerializeField] protected Vector3 customCarryRotation = Vector3.zero;
+        [SerializeField] protected float customCarryScale = 1f;
+
         protected Vector3 startPosition;
         protected Collider itemCollider;
 
@@ -57,6 +63,12 @@ namespace YajaGame.Gameplay
         public ItemType Type => itemType;
         public Sprite Icon => itemIcon;
         public int Value => itemValue;
+
+        // Carry 설정 속성
+        public bool UseCustomCarrySettings => useCustomCarrySettings;
+        public Vector3 CustomCarryOffset => customCarryOffset;
+        public Vector3 CustomCarryRotation => customCarryRotation;
+        public float CustomCarryScale => customCarryScale;
 
         protected virtual void Awake()
         {

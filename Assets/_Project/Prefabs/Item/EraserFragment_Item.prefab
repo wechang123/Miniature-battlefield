@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 6416132689095117155}
   - component: {fileID: 3147474841366800183}
   - component: {fileID: 4599873046698478818}
-  - component: {fileID: 7760795914158079133}
   - component: {fileID: 8802616807232852642}
   - component: {fileID: 7218724312834982536}
+  - component: {fileID: 9223372036854775807}
   m_Layer: 7
   m_Name: EraserFragment_Item
   m_TagString: Untagged
@@ -111,33 +111,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!54 &7760795914158079133
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 380899239922094926}
-  serializedVersion: 4
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!135 &8802616807232852642
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -182,4 +155,35 @@ MonoBehaviour:
   bobSpeed: 2
   bobHeight: 0.3
   rotationSpeed: 50
+  useCustomCarrySettings: 0
+  customCarryOffset: {x: 0, y: 0, z: 0}
+  customCarryRotation: {x: 0, y: 0, z: 0}
+  customCarryScale: 1
   fragmentValue: 1
+--- !u!54 &9223372036854775807
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 380899239922094926}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0.5
+  m_AngularDrag: 0.5
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0

@@ -20,6 +20,12 @@ namespace YajaGame.Gameplay.Weapons.Melee
         [Header("Animation (Optional)")]
         [SerializeField] protected Animator animator;
         [SerializeField] protected string attackTriggerName = "Attack"; // 공격 애니메이션 트리거
+        [SerializeField] protected string attackStateName = "Attack"; // 공격 애니메이션 상태 이름 (Play용)
+
+        [Header("Audio")]
+        [SerializeField] protected AudioClip attackSound; // 공격 사운드
+        [SerializeField] protected AudioClip hitSound; // 타격 사운드
+        [SerializeField] protected float soundVolume = 1f; // 사운드 볼륨
 
         [Header("Events")]
         public UnityEvent OnAttackStarted = new UnityEvent();
@@ -91,17 +97,23 @@ namespace YajaGame.Gameplay.Weapons.Melee
             string weaponName = weaponData != null ? weaponData.WeaponName : "Unknown";
             Debug.Log($"[MeleeWeapon] 공격 시작: {weaponName}");
 
-            // 애니메이션 재생
+            // 공격 사운드 재생
+            if (attackSound != null)
+            {
+                AudioSource.PlayClipAtPoint(attackSound, transform.position, soundVolume);
+            }
+
+            // 즉시 히트박스 활성화 (클릭하자마자 공격)
+            ActivateHitbox();
+            Invoke(nameof(DeactivateHitbox), 0.2f); // 0.2초 후 비활성화
+            Invoke(nameof(EndAttack), 0.3f); // 0.3초 후 공격 종료
+
+            // 애니메이션 즉시 재생 (강제)
             if (animator != null)
             {
-                animator.SetTrigger(attackTriggerName);
-            }
-            else
-            {
-                // 애니메이션 없으면 즉시 히트박스 활성화
-                ActivateHitbox();
-                Invoke(nameof(DeactivateHitbox), 0.3f); // 0.3초 후 비활성화
-                Invoke(nameof(EndAttack), 0.5f); // 0.5초 후 공격 종료
+                // Play를 사용하여 현재 상태 무시하고 즉시 재생
+                animator.Play(attackStateName, 0, 0f); // 레이어 0, 정규화된 시간 0 (처음부터)
+                Debug.Log($"[MeleeWeapon] 애니메이션 강제 재생: {attackStateName}");
             }
 
             OnAttackStarted?.Invoke();
@@ -170,10 +182,11 @@ namespace YajaGame.Gameplay.Weapons.Melee
                 Instantiate(weaponData.HitEffectPrefab, target.transform.position, Quaternion.identity);
             }
 
-            // 히트 사운드
-            if (weaponData.FireSound != null)
+            // 히트 사운드 (hitSound가 설정되어 있으면 우선 사용, 아니면 WeaponData의 FireSound 사용)
+            AudioClip soundToPlay = hitSound != null ? hitSound : weaponData.FireSound;
+            if (soundToPlay != null)
             {
-                AudioSource.PlayClipAtPoint(weaponData.FireSound, target.transform.position);
+                AudioSource.PlayClipAtPoint(soundToPlay, target.transform.position, soundVolume);
             }
 
             OnHitEnemy?.Invoke(target);
@@ -188,6 +201,22 @@ namespace YajaGame.Gameplay.Weapons.Melee
         {
             weaponData = data;
             Debug.Log($"[MeleeWeapon] 무기 데이터 설정: {data.WeaponName}");
+        }
+
+        /// <summary>
+        /// Animator 설정 (플레이어 애니메이터를 할당할 때 사용)
+        /// </summary>
+        public virtual void SetAnimator(Animator anim)
+        {
+            animator = anim;
+            if (animator != null)
+            {
+                Debug.Log($"[MeleeWeapon] Animator 설정 완료");
+            }
+            else
+            {
+                Debug.LogWarning($"[MeleeWeapon] Animator가 null입니다!");
+            }
         }
 
         // Animation Event용 메서드들

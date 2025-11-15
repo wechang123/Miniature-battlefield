@@ -29,6 +29,7 @@ namespace StarterAssets
         public float SpeedChangeRate = 10.0f;
 
         public AudioClip LandingAudioClip;
+        public AudioClip JumpAudioClip;
         public AudioClip[] FootstepAudioClips;
         [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
 
@@ -304,6 +305,12 @@ namespace StarterAssets
                 {
                     // the square root of H * -2 * G = how much velocity needed to reach desired height
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+
+                    // play jump sound
+                    if (JumpAudioClip != null)
+                    {
+                        AudioSource.PlayClipAtPoint(JumpAudioClip, transform.TransformPoint(_controller.center), FootstepAudioVolume);
+                    }
 
                     // update animator if using character
                     if (_hasAnimator)
