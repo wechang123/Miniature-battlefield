@@ -22,7 +22,7 @@ namespace YajaGame.Gameplay
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
-        [SerializeField] private float throwReleaseTime = 0.3f; // 애니메이션 중 물체를 놓는 타이밍 (던지기 모션 중간)
+        [SerializeField] private float throwReleaseTime = 1.5f; // 애니메이션 중 물체를 놓는 타이밍 (던지기 모션 중간)
 
         [Header("Audio")]
         [SerializeField] private AudioClip throwSound; // 던지기 사운드
@@ -37,6 +37,9 @@ namespace YajaGame.Gameplay
         [Header("Events")]
         public UnityEvent<ItemBase> OnItemThrown;
 
+        [Header("Control")]
+        [SerializeField] private bool isEnabled = true; // 컨트롤러 활성화 상태
+
         private ItemCarrySystem _carrySystem;
         private StarterAssetsInputs _input;
         private TrajectoryPredictor _trajectoryPredictor;
@@ -44,9 +47,12 @@ namespace YajaGame.Gameplay
 
         private void Awake()
         {
+            Debug.Log("[ItemThrowSystem] ========== Awake 호출! ==========");
             _carrySystem = GetComponent<ItemCarrySystem>();
             _input = GetComponent<StarterAssetsInputs>();
             _trajectoryPredictor = GetComponent<TrajectoryPredictor>();
+
+            Debug.Log($"[ItemThrowSystem] _carrySystem={_carrySystem != null}, _input={_input != null}, eraserBombPrefab={eraserBombProjectilePrefab != null}");
 
             // Animator 자동 찾기 (Inspector에서 할당 안 했으면)
             if (animator == null)
@@ -68,14 +74,67 @@ namespace YajaGame.Gameplay
             }
         }
 
+        private void Start()
+        {
+            // ItemCarrySystem 이벤트 연결
+            if (_carrySystem != null)
+            {
+                _carrySystem.OnItemPickedUp.AddListener(OnItemPickedUp);
+                _carrySystem.OnItemDropped.AddListener(OnItemDropped);
+            }
+        }
+
+        /// <summary>
+        /// 아이템을 주웠을 때 - 근접 무기면 던지기 비활성화
+        /// </summary>
+        private void OnItemPickedUp(ItemBase item)
+        {
+            // 근접 무기 아이템인지 확인
+            MeleeWeaponItem meleeWeapon = item.GetComponent<MeleeWeaponItem>();
+            if (meleeWeapon != null)
+            {
+                // 근접 무기는 던지기 불가
+                isEnabled = false;
+                Debug.Log("[ItemThrowSystem] 근접 무기 감지 - 던지기 시스템 비활성화");
+            }
+            else
+            {
+                // 던질 수 있는 아이템
+                isEnabled = true;
+                Debug.Log("[ItemThrowSystem] 던질 수 있는 아이템 - 던지기 시스템 활성화");
+            }
+        }
+
+        /// <summary>
+        /// 아이템을 떨어뜨렸을 때
+        /// </summary>
+        private void OnItemDropped(ItemBase item)
+        {
+            // 아이템을 떨어뜨리면 던지기 시스템 비활성화
+            isEnabled = false;
+            Debug.Log("[ItemThrowSystem] 아이템 떨어뜨림 - 던지기 시스템 비활성화");
+        }
+
+        private float _debugTimer = 0f;
+
         private void Update()
         {
-            // 던지기 입력 처리
-            if (_input.@throw)
+            // 던지기 시스템이 비활성화되어 있으면 리턴
+            if (!isEnabled) return;
+
+            // 디버그: 5초마다 로그
+            _debugTimer += Time.deltaTime;
+            if (_debugTimer >= 5f)
             {
-                Debug.Log("[ItemThrowSystem] Update: throw 입력 감지!");
+                Debug.Log("[ItemThrowSystem] Update 호출 중! (5초마다)");
+                _debugTimer = 0f;
+            }
+
+            // 던지기 입력 처리 (마우스 왼쪽 클릭)
+            if (Input.GetMouseButtonDown(0)) // 마우스 좌클릭
+            {
+                Debug.Log("[ItemThrowSystem] 마우스 좌클릭 감지 - 던지기 시도!");
                 TryThrowItem();
-                _input.@throw = false; // 입력 소모
             }
 
             // 궤적 미리보기 업데이트
@@ -96,6 +155,14 @@ namespace YajaGame.Gameplay
         /// </summary>
         private void TryThrowItem()
         {
+            Debug.Log("[ItemThrowSystem] TryThrowItem 호출!");
+
+            if (!isEnabled)
+            {
+                Debug.Log("[ItemThrowSystem] 던지기 시스템이 비활성화되어 있습니다!");
+                return;
+            }
+
             if (!_carrySystem.IsCarryingItem)
             {
                 Debug.Log("[ItemThrowSystem] 들고 있는 아이템이 없습니다!");
@@ -109,6 +176,7 @@ namespace YajaGame.Gameplay
             }
 
             // 코루틴 시작
+            Debug.Log("[ItemThrowSystem] ThrowWithAnimation 코루틴 시작!");
             StartCoroutine(ThrowWithAnimation());
         }
 
@@ -157,6 +225,12 @@ namespace YajaGame.Gameplay
             // 아이템 놓기
             ItemBase itemToThrow = _carrySystem.ReleaseItem();
 
+            // 궤적선 즉시 숨기기
+            if (_trajectoryPredictor != null)
+            {
+                _trajectoryPredictor.HideTrajectory();
+            }
+
             // 던지는 방향 계산
             Vector3 throwDirection = CalculateThrowDirection();
 
@@ -164,17 +238,24 @@ namespace YajaGame.Gameplay
             WeaponPartItem weaponPart = itemToThrow.GetComponent<WeaponPartItem>();
             bool isEraserBomb = weaponPart != null && weaponPart.PartType == WeaponPartType.EraserBomb;
 
+            Debug.Log($"[ItemThrowSystem] weaponPart={weaponPart != null}, isEraserBomb={isEraserBomb}, prefab={eraserBombProjectilePrefab != null}");
+            if (weaponPart != null) Debug.Log($"[ItemThrowSystem] PartType={weaponPart.PartType}");
+
             if (isEraserBomb && eraserBombProjectilePrefab != null)
             {
                 // 지우개폭탄 발사체 생성
                 Vector3 spawnPosition = itemToThrow.transform.position;
+                Debug.Log($"[ItemThrowSystem] 지우개폭탄 프리팹 생성 시작! 위치: {spawnPosition}");
+
                 GameObject projectileObj = Instantiate(eraserBombProjectilePrefab, spawnPosition, Quaternion.identity);
+                Debug.Log($"[ItemThrowSystem] 프리팹 생성 완료! 오브젝트: {projectileObj.name}");
 
                 // Rigidbody에 힘 적용
                 Rigidbody rb = projectileObj.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
                     rb.linearVelocity = throwDirection * throwForce;
+                    Debug.Log($"[ItemThrowSystem] 속도 설정: {rb.linearVelocity}");
                 }
 
                 // 원래 아이템 제거
@@ -258,6 +339,40 @@ namespace YajaGame.Gameplay
         public int GetTotalThrowCount()
         {
             return totalThrowCount;
+        }
+
+        /// <summary>
+        /// 애니메이션 이벤트에서 호출됨 (던지기 애니메이션 중 아이템을 놓는 타이밍)
+        /// </summary>
+        public void OnThrowAnimationEvent()
+        {
+            // 애니메이션 이벤트로 던지기가 호출된 경우도 throwReleaseTime만큼 딜레이 적용
+            if (_carrySystem.IsCarryingItem && !_isThrowingInProgress)
+            {
+                StartCoroutine(DelayedThrow());
+            }
+        }
+
+        /// <summary>
+        /// 딜레이 후 던지기
+        /// </summary>
+        private System.Collections.IEnumerator DelayedThrow()
+        {
+            Debug.Log($"[ItemThrowSystem] DelayedThrow 시작! {throwReleaseTime}초 대기");
+            _isThrowingInProgress = true;
+            yield return new WaitForSeconds(throwReleaseTime);
+
+            Debug.Log("[ItemThrowSystem] 대기 완료, PerformThrow 호출!");
+            if (_carrySystem.IsCarryingItem)
+            {
+                PerformThrow();
+            }
+            else
+            {
+                Debug.Log("[ItemThrowSystem] 아이템이 없어서 던지기 취소!");
+            }
+
+            _isThrowingInProgress = false;
         }
 
         private void OnDrawGizmosSelected()

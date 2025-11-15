@@ -9,23 +9,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 565bbc6046b5a432f8dd1c187b7c78ad, type: 3}
-  m_Name: PencilSPear_MeleeData
-  m_EditorClassIdentifier: 
+  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000000, type: 3}
+  m_Name: PencilSpear_Data
+  m_EditorClassIdentifier:
   weaponName: "\uC5F0\uD544\uCC3D"
-  weaponType: 0
+  weaponType: 2
   weaponIcon: {fileID: 0}
-  description: "\uB0A0\uCE74\uB85C\uC6B4 \uC5F0\uD544\uB85C \uB9CC\uB4E0 \uCC3D.
-    \uBE60\uB974\uAC8C \uD718\uB458\uB7EC \uC801\uC744 \uACF5\uACA9\uD560 \uC218
-    \uC788\uB2E4."
-  damage: 25
+  description: "\uB0A0\uCE74\uB85C\uC6B4 \uC5F0\uD544\uB85C \uB9CC\uB4E0 \uCC3D. \uBE60\uB978 \uBCA0\uAE30 \uACF5\uACA9\uC744 \uD560 \uC218 \uC788\uB2E4."
+  damage: 15
   damageType: 0
-  knockbackForce: 3
+  knockbackForce: 8
   projectilePrefab: {fileID: 0}
-  projectileSpeed: 20
-  projectileLifetime: 5
-  projectileGravityScale: 1
-  fireRate: 2.5
+  projectileSpeed: 0
+  projectileLifetime: 0
+  projectileGravityScale: 0
+  fireRate: 1.5
   maxAmmo: -1
   reloadTime: 0
   fireSound: {fileID: 0}

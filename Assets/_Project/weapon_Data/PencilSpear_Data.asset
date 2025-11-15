@@ -12,20 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 565bbc6046b5a432f8dd1c187b7c78ad, type: 3}
   m_Name: PencilSpear_Data
   m_EditorClassIdentifier: 
-  weaponName: PencilSpear
+  weaponName: "\uC5F0\uD544\uCC3D"
   weaponType: 0
   weaponIcon: {fileID: 0}
-  description: "\uBB34\uAE30 \uC124\uBA85"
-  damage: 30
+  description: "\uB0A0\uCE74\uB85C\uC6B4 \uC5F0\uD544\uB85C \uB9CC\uB4E0 \uCC3D.
+    \uBE60\uB974\uAC8C \uD718\uB458\uB7EC \uC801\uC744 \uACF5\uACA9\uD560 \uC218
+    \uC788\uB2E4."
+  damage: 25
   damageType: 0
   knockbackForce: 3
   projectilePrefab: {fileID: 0}
-  projectileSpeed: 25
+  projectileSpeed: 20
   projectileLifetime: 5
   projectileGravityScale: 1
-  fireRate: 1
-  maxAmmo: 10
-  reloadTime: 2
+  fireRate: 2.5
+  maxAmmo: -1
+  reloadTime: 0
   fireSound: {fileID: 0}
   reloadSound: {fileID: 0}
   emptySound: {fileID: 0}

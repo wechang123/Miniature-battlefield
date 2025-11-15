@@ -70,11 +70,17 @@ namespace YajaGame.Gameplay
                 ScanForItems();
             }
 
-            // E키 입력 처리
+            // E키 입력 처리 (줍기)
             if (_input.pickup)
             {
                 TryPickup();
                 _input.pickup = false; // 입력 소모
+            }
+
+            // F키 입력 처리 (버리기)
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                TryDrop();
             }
         }
 
@@ -163,6 +169,27 @@ namespace YajaGame.Gameplay
         }
 
         /// <summary>
+        /// 아이템 버리기 시도
+        /// </summary>
+        private void TryDrop()
+        {
+            if (_carrySystem == null)
+            {
+                Debug.LogWarning("[PlayerInteraction] ItemCarrySystem을 찾을 수 없습니다!");
+                return;
+            }
+
+            if (!_carrySystem.IsCarryingItem)
+            {
+                Debug.Log("[PlayerInteraction] 들고 있는 아이템이 없습니다!");
+                return;
+            }
+
+            Debug.Log("[PlayerInteraction] F키 버리기 실행!");
+            _carrySystem.ForceDropItem();
+        }
+
+        /// <summary>
         /// 애니메이션과 함께 줍기 실행 (애니메이션 중간에 아이템 줍기)
         /// </summary>
         private System.Collections.IEnumerator PickupWithAnimation()
@@ -212,8 +239,22 @@ namespace YajaGame.Gameplay
 
             OnItemPickedUp?.Invoke(_nearestItem);
 
-            // ItemCarrySystem으로 아이템 들기
+            // ItemBase 가져오기
             ItemBase itemBase = _nearestItem.Transform.GetComponent<ItemBase>();
+
+            // 파편 아이템인지 확인 (파편은 인벤토리에만 추가, 들지 않음)
+            EraserFragmentItem fragmentItem = itemBase?.GetComponent<EraserFragmentItem>();
+            if (fragmentItem != null)
+            {
+                Debug.Log("[PlayerInteraction] 파편 감지 - 인벤토리에 추가");
+                _nearestItem.OnPickup(); // 인벤토리 추가 후 자동 파괴
+                RemoveHighlight();
+                _nearestItem = null;
+                OnItemOutOfRange?.Invoke();
+                return;
+            }
+
+            // 일반 아이템: ItemCarrySystem으로 들기
             if (_carrySystem != null && itemBase != null)
             {
                 bool success = _carrySystem.PickupItem(itemBase);
