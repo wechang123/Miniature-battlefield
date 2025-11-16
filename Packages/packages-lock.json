@@ -36,6 +36,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.collections": {
+<<<<<<< HEAD
       "version": "2.5.7",
       "depth": 0,
       "source": "registry",
@@ -44,6 +45,15 @@
         "com.unity.mathematics": "1.3.2",
         "com.unity.test-framework": "1.4.6",
         "com.unity.nuget.mono-cecil": "1.11.5",
+=======
+      "version": "2.5.1",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.burst": "1.8.17",
+        "com.unity.test-framework": "1.4.5",
+        "com.unity.nuget.mono-cecil": "1.11.4",
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
         "com.unity.test-framework.performance": "3.0.3"
       },
       "url": "https://packages.unity.com"
@@ -97,7 +107,11 @@
       }
     },
     "com.unity.nuget.mono-cecil": {
+<<<<<<< HEAD
       "version": "1.11.5",
+=======
+      "version": "1.11.4",
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
       "depth": 0,
       "source": "registry",
       "dependencies": {},
@@ -171,6 +185,7 @@
         "com.unity.searcher": "4.9.3"
       }
     },
+<<<<<<< HEAD
     "com.unity.sysroot": {
       "version": "2.0.10",
       "depth": 1,
@@ -187,6 +202,8 @@
       },
       "url": "https://packages.unity.com"
     },
+=======
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
     "com.unity.test-framework": {
       "version": "1.5.1",
       "depth": 0,
@@ -219,6 +236,7 @@
       },
       "url": "https://packages.unity.com"
     },
+<<<<<<< HEAD
     "com.unity.toolchain.win-x86_64-linux-x86_64": {
       "version": "2.0.11",
       "depth": 0,
@@ -229,6 +247,8 @@
       },
       "url": "https://packages.unity.com"
     },
+=======
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
     "com.unity.ugui": {
       "version": "2.0.0",
       "depth": 0,

@@ -52,4 +52,7 @@ crashlytics-build.properties
 # VS Code
 .vscode/
 *.zip
+<<<<<<< HEAD
 mono_crash.*.json
+=======
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690

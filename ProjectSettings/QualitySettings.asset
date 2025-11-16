@@ -13,7 +13,11 @@ QualitySettings:
     shadowResolution: 1
     shadowProjection: 1
     shadowCascades: 2
+<<<<<<< HEAD
     shadowDistance: 1000
+=======
+    shadowDistance: 40
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
     shadowNearPlaneOffset: 3
     shadowCascade2Split: 0.33333334
     shadowCascade4Split: {x: 0.06666667, y: 0.2, z: 0.46666667}
@@ -67,7 +71,11 @@ QualitySettings:
     shadowResolution: 1
     shadowProjection: 1
     shadowCascades: 2
+<<<<<<< HEAD
     shadowDistance: 1000
+=======
+    shadowDistance: 40
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
     shadowNearPlaneOffset: 3
     shadowCascade2Split: 0.33333334
     shadowCascade4Split: {x: 0.06666667, y: 0.2, z: 0.46666667}

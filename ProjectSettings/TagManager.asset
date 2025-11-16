@@ -2,9 +2,14 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
+<<<<<<< HEAD
   serializedVersion: 3
   tags:
   - CinemachineTarget
+=======
+  serializedVersion: 2
+  tags: []
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
   layers:
   - Default
   - TransparentFX
@@ -12,8 +17,13 @@ TagManager:
   - 
   - Water
   - UI
+<<<<<<< HEAD
   - Ground
   - Player
+=======
+  - 
+  - 
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
   - 
   - 
   - 
@@ -51,3 +61,30 @@ TagManager:
   - Light Layer 5
   - Light Layer 6
   - Light Layer 7
+<<<<<<< HEAD
+=======
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+>>>>>>> cfaaa9bc6a654cf298361723da0d6b8ba82a1690
