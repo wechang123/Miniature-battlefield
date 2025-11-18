@@ -1,104 +1,223 @@
-# 선생님 순찰 AI 설정 가이드
+# 선생님 AI 시스템 설정 가이드
 
-협업자2가 추가한 선생님 캐릭터를 교실 구간을 순찰하도록 설정하는 방법입니다.
+이 가이드는 선생님 AI 추적, 손전등, Game Over 기능을 Playground 씬에 추가하는 방법을 설명합니다.
 
-## 1. NavMesh 베이킹 (교실 바닥 설정)
+## 추출된 파일 목록
 
-1. Unity 에디터에서 `Window > AI > Navigation` 메뉴 열기
-2. 교실 바닥 오브젝트를 선택
-3. Inspector에서 `Navigation Static` 체크박스 활성화
-4. Navigation 윈도우에서 `Bake` 탭으로 이동
-5. `Bake` 버튼 클릭하여 NavMesh 생성
-   - 파란색 영역이 선생님이 걸어다닐 수 있는 구역입니다
+### 스크립트
+- `Assets/SimpleAIController.cs` - 선생님 AI (추적/순찰/감지)
+- `Assets/AIController.cs` - 고급 AI (손전등 연동)
+- `Assets/GameManager.cs` - Game Over 로직
+- `Assets/ItemHolder.cs` - 손전등 장착 시스템
 
-## 2. 순찰 포인트 생성
+### 프리팹 & 모델
+- `Assets/NewFlashlightPrefab.prefab` - 손전등
+- `Assets/goschool/Scary_Teacher-1.prefab` - 선생님 캐릭터
+- `Assets/goschool/GameUI.prefab` - Game Over UI
+- `Assets/goschool/GameManager.prefab` - GameManager 오브젝트
+- `Assets/Scary_Teacher-1@Walking.fbx` - 선생님 모델 + 걷기 애니메이션
 
-1. Hierarchy에서 빈 GameObject 생성 (이름: `PatrolPoints`)
-2. `PatrolPoints` 하위에 빈 GameObject들을 생성:
-   - `PatrolPoint1`
-   - `PatrolPoint2`
-   - `PatrolPoint3`
-   - `PatrolPoint4`
-   (원하는 만큼 추가 가능)
+### 애니메이션
+- `Assets/New Animator Controller.controller` - 애니메이션 컨트롤러
 
-3. Scene 뷰에서 각 포인트를 선생님이 지나가길 원하는 위치로 이동
-   - 교실 앞
-   - 복도
-   - 교실 뒤
-   - 등등...
+### NavMesh
+- `Assets/Scenes/SampleScene/NavMesh-School.asset` - NavMesh 데이터
 
-## 3. 선생님 캐릭터 설정
+---
 
-### 3-1. 씬에 선생님 추가
-1. `Assets/scary-teacher/source/Scary_Teacher-1.fbx`를 Hierarchy에 드래그
-2. 이름을 `Teacher`로 변경
+## Unity 설정 단계
 
-### 3-2. 필요한 컴포넌트 추가
+### 1단계: Tag 설정
 
-선생님 GameObject를 선택하고 다음 컴포넌트들을 추가:
+1. Unity 상단 메뉴: **Edit > Project Settings > Tags and Layers**
+2. **Tags** 섹션에서 **+** 버튼 클릭
+3. 새 태그 추가: `Player`
+4. Hierarchy에서 **Player** 오브젝트 선택
+5. Inspector 상단의 **Tag** 드롭다운에서 `Player` 선택
 
-#### A. Nav Mesh Agent
-- `Add Component > Nav Mesh Agent`
-- 설정:
-  - Speed: `1.5`
-  - Angular Speed: `120`
-  - Acceleration: `8`
-  - Stopping Distance: `0.5`
-  - Radius: `0.5`
-  - Height: `2` (선생님 캐릭터 키에 맞게 조정)
+### 2단계: Layer 설정
 
-#### B. Animator
-- `Add Component > Animator`
-- 설정:
-  - Controller: `Assets/StarterAssets/ThirdPersonController/Character/Animations/StarterAssetsThirdPerson.controller`
-  - Avatar: Scary_Teacher-1 모델의 Avatar 자동 설정됨
-  - Apply Root Motion: 체크 해제
+1. **Edit > Project Settings > Tags and Layers**
+2. **Layers** 섹션에서 빈 레이어 찾기
+3. 다음 레이어 추가:
+   - Layer 6: `Ground`
+   - Layer 7: `Player` (선택사항)
 
-#### C. Teacher Patrol AI 스크립트
-- `Add Component > Teacher Patrol AI`
-- 설정:
-  - Patrol Points 배열 크기 설정 (예: 4)
-  - 각 슬롯에 위에서 만든 PatrolPoint1, 2, 3, 4를 드래그
-  - Wait Time At Point: `2` (각 포인트에서 2초 대기)
-  - Walk Speed: `1.5`
+4. Hierarchy에서 **바닥/교실 오브젝트** 선택
+5. Inspector 상단의 **Layer** 드롭다운에서 `Ground` 선택
+   - "Change children layers too?" → **Yes, change children** 클릭
 
-## 4. 테스트
+### 3단계: GameManager 설정
 
-1. Play 버튼 클릭
-2. 선생님이 설정한 순찰 포인트들을 순서대로 이동하는지 확인
-3. 걷는 애니메이션이 재생되는지 확인
+1. **Project 창**에서 `Assets/goschool/GameManager.prefab` 찾기
+2. Hierarchy의 **루트 레벨**로 드래그 앤 드롭
+3. Hierarchy에 **GameManager** 오브젝트가 생성됨
 
-## 5. 선생님 프리팹으로 저장 (선택사항)
+### 4단계: Game Over UI 설정
 
-설정이 완료되면:
-1. Hierarchy의 Teacher GameObject를 선택
-2. `Assets/StarterAssets/ThirdPersonController/Prefabs/` 폴더로 드래그
-3. 프리팹 이름: `TeacherPatrol.prefab`
+1. **Hierarchy**에서 기존 **Canvas** 찾기 (없으면 GameObject > UI > Canvas로 생성)
+2. **Project 창**에서 `Assets/goschool/GameUI.prefab` 찾기
+3. **Canvas의 자식으로** 드래그 앤 드롭
+
+4. **GameManager와 UI 연결**:
+   - Hierarchy에서 **GameManager** 선택
+   - Inspector에서 **GameManager (Script)** 컴포넌트 찾기
+   - **Game Over Text** 필드에 `Canvas/GameUI/GameOverText` 드래그 앤 드롭
+
+### 5단계: 선생님 캐릭터 배치
+
+1. **Project 창**에서 `Assets/goschool/Scary_Teacher-1.prefab` 찾기
+2. **Scene 뷰**에서 교실 강단(podium) 위치로 드래그
+3. Transform 설정 예시:
+   - Position: (0, 0, 0) - 교실 중앙 또는 원하는 위치
+   - Rotation: (0, 0, 0)
+   - Scale: (1, 1, 1)
+
+### 6단계: 선생님 AI 컴포넌트 추가
+
+선생님 프리팹에 **SimpleAIController** 또는 **AIController** 중 하나 추가:
+
+#### 옵션 A: SimpleAIController (기본, 손전등 없음)
+
+1. Hierarchy에서 **Scary_Teacher-1** 선택
+2. Inspector 하단 **Add Component** 클릭
+3. `SimpleAIController` 입력 후 선택
+4. **컴포넌트 설정**:
+   - **Player Layer**: `Player` 레이어 선택
+   - **View Angle**: 60 (기본값)
+   - **View Distance**: 15 (기본값)
+   - **Chase Speed**: 5
+   - **Movement Speed**: 2
+   - **Catch Distance**: 1.5
+
+#### 옵션 B: AIController (고급, 손전등 지원)
+
+1. Hierarchy에서 **Scary_Teacher-1** 선택
+2. Inspector 하단 **Add Component** 클릭
+3. `AIController` 입력 후 선택
+4. **Add Component** 다시 클릭 → `ItemHolder` 추가
+5. **ItemHolder 설정**:
+   - **Right Hand**: Scary_Teacher-1 프리팹의 RightHand 본 드래그
+   - **Flashlight Prefab**: `Assets/NewFlashlightPrefab.prefab` 드래그
+6. **AIController 설정**:
+   - **Player**: Hierarchy의 `Player` 오브젝트 드래그
+   - **View Angle**: 60
+   - **View Distance**: 15
+   - **Chase Speed**: 5
+
+### 7단계: NavMeshAgent 추가
+
+1. Hierarchy에서 **Scary_Teacher-1** 선택
+2. Inspector 하단 **Add Component** 클릭
+3. `NavMeshAgent` 입력 후 선택
+4. **설정**:
+   - **Speed**: 2 (걷기 속도)
+   - **Angular Speed**: 120
+   - **Acceleration**: 8
+   - **Stopping Distance**: 0.5
+   - **Auto Braking**: ✅ 체크
+   - **Radius**: 0.5
+   - **Height**: 2
+
+### 8단계: NavMesh 베이킹
+
+1. **Window > AI > Navigation** 메뉴 열기
+2. **Bake** 탭 선택
+3. **Agent Radius**: 0.5
+4. **Agent Height**: 2
+5. **Max Slope**: 45
+6. **Step Height**: 0.4
+
+7. Hierarchy에서 **바닥/교실 오브젝트** 선택
+8. Inspector 우측 상단 **Static** 체크박스 옆 드롭다운 클릭
+9. **Navigation Static** 체크
+10. Navigation 창에서 **Bake** 버튼 클릭
+
+> Scene 뷰에서 파란색 영역이 NavMesh입니다.
+
+### 9단계: Player 충돌 감지 설정
+
+1. Hierarchy에서 **Player** 오브젝트 선택
+2. Inspector에서 **Collider** 컴포넌트 확인 (Capsule Collider 또는 Character Controller)
+3. **Is Trigger** 체크 해제 (물리 충돌 활성화)
+4. **Tag**가 `Player`인지 확인
+5. **Layer**를 `Player`로 설정 (선택사항)
+
+### 10단계: 테스트
+
+1. Unity 상단 **재생 버튼** (▶) 클릭
+2. **확인 사항**:
+   - 선생님이 교실을 순찰하는가?
+   - Player가 선생님 시야에 들어오면 추격하는가?
+   - 선생님이 Player를 잡으면 "GAME OVER" 표시되는가?
+   - 3초 후 씬이 재시작되는가?
+
+---
+
+## 선택사항: 손전등 게임 시작 시 장착
+
+**AIController**를 사용하는 경우, 손전등을 자동으로 장착하려면:
+
+1. Hierarchy에서 **Scary_Teacher-1** 선택
+2. Inspector에서 **ItemHolder (Script)** 찾기
+3. 스크립트 편집기에서 `ItemHolder.cs` 열기
+4. `Start()` 메서드에 다음 추가:
+
+```csharp
+void Start()
+{
+    animator = GetComponent<Animator>();
+    EquipFlashlight(); // 게임 시작 시 손전등 자동 장착
+}
+```
+
+---
+
+## 주요 파라미터 설명
+
+### SimpleAIController
+- **View Angle**: 시야 각도 (60° = 좌우 30°씩)
+- **View Distance**: 시야 거리 (미터)
+- **Chase Speed**: 추격 속도
+- **Movement Speed**: 순찰 속도
+- **Catch Distance**: Player를 잡는 거리
+- **Lose Player Time**: Player를 놓친 후 포기하는 시간
+
+### AIController
+- 위 설정 + 손전등 연동
+- **Flashlight Range**: 손전등 조명 범위
+- **With Flashlight View Angle**: 손전등 켜졌을 때 시야각
+
+### GameManager
+- **Game Over Text**: Game Over 메시지 UI
+- **Restart Delay**: 재시작까지 대기 시간 (3초)
+
+---
 
 ## 문제 해결
 
-### 선생님이 움직이지 않는 경우
-- NavMesh가 제대로 베이킹되었는지 확인 (파란색 영역)
-- 순찰 포인트들이 NavMesh 위에 있는지 확인
-- Console에 에러 메시지가 있는지 확인
+### 선생님이 움직이지 않음
+- NavMesh가 베이킹되었는지 확인 (Scene 뷰에서 파란색 영역)
+- NavMeshAgent 컴포넌트가 추가되었는지 확인
+- 선생님이 NavMesh 위에 배치되었는지 확인
 
-### 애니메이션이 재생되지 않는 경우
-- Animator Controller가 제대로 설정되었는지 확인
-- Avatar가 선생님 모델에 맞게 설정되었는지 확인
-- Apply Root Motion이 체크 해제되어 있는지 확인
+### Player를 감지하지 못함
+- Player Tag가 설정되었는지 확인
+- Player Layer가 올바른지 확인
+- AIController의 Player 레퍼런스가 연결되었는지 확인
 
-### 선생님이 벽을 통과하는 경우
-- 벽 오브젝트에 Collider가 있는지 확인
-- NavMesh 베이킹 시 벽이 Obstacle로 인식되도록 설정
+### Game Over가 작동하지 않음
+- GameManager가 Hierarchy에 있는지 확인
+- GameManager의 Game Over Text 필드가 연결되었는지 확인
+- Player에 Character Controller가 있는지 확인
 
-## 추가 기능 구현 아이디어
+### 손전등이 보이지 않음
+- ItemHolder의 Right Hand 필드가 연결되었는지 확인
+- Flashlight Prefab이 연결되었는지 확인
+- AIController를 사용하는지 확인 (SimpleAIController는 손전등 미지원)
 
-- 플레이어 발견 시 추격 시스템
-- 시야각(Field of View) 구현
-- 순찰 패턴 랜덤화
-- 선생님 여러 명 배치
-- 플레이어와 충돌 시 게임오버
+---
 
-## 참고 스크립트
+## 완료!
 
-선생님 AI 스크립트: `Assets/StarterAssets/ThirdPersonController/Scripts/TeacherPatrolAI.cs`
+모든 설정이 완료되면 게임을 플레이하여 선생님 AI가 정상적으로 작동하는지 확인하세요.
