@@ -18,6 +18,12 @@ public class ItemHolder : MonoBehaviour
         {
             rightHandTransform = FindHandBone("RightHand");
         }
+
+        // ê²Œì„ ì‹œì‘ ì‹œ ì†ì „ë“± ìë™ ì¥ì°©
+        if (flashlightPrefab != null)
+        {
+            EquipFlashlight();
+        }
     }
 
     public GameObject EquipItem(GameObject itemPrefab, bool useRightHand = true)
@@ -31,7 +37,7 @@ public class ItemHolder : MonoBehaviour
         
         if (currentHand == null)
         {
-            Debug.LogError("¼Õ TransformÀÌ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù!");
+            Debug.LogError("ï¿½ï¿½ Transformï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½!");
             return null;
         }
 
@@ -50,14 +56,14 @@ public class ItemHolder : MonoBehaviour
         
         if (flashlight != null)
         {
-            // Å©±â Á¶Á¤ (»õ ¸ğµ¨¿¡ ¸Â°Ô)
+            // Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ ï¿½ğµ¨¿ï¿½ ï¿½Â°ï¿½)
             flashlight.transform.localScale = Vector3.one * 0.5f;
             
-            // À§Ä¡ Á¶Á¤ (¿©·¯ °ª ½Ãµµ)
+            // ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ãµï¿½)
             flashlight.transform.localPosition = new Vector3(0, 0, 0.15f);
             flashlight.transform.localRotation = Quaternion.Euler(90, 0, 0);
             
-            Debug.Log($"¼ÕÀüµî ÀåÂø ¿Ï·á! À§Ä¡: {flashlight.transform.position}");
+            Debug.Log($"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½! ï¿½ï¿½Ä¡: {flashlight.transform.position}");
         }
         
         return flashlight;
