@@ -197,6 +197,19 @@ namespace YajaGame.Gameplay
                 itemRb.isKinematic = true;
             }
 
+            // 아이템 장착 처리 (애니메이션 중지)
+            EraserBombItem eraserBomb = item.GetComponent<EraserBombItem>();
+            if (eraserBomb != null)
+            {
+                eraserBomb.OnEquipped();
+            }
+
+            MeleeWeaponItem meleeWeapon = item.GetComponent<MeleeWeaponItem>();
+            if (meleeWeapon != null)
+            {
+                meleeWeapon.OnEquipped();
+            }
+
             OnItemPickedUp?.Invoke(item);
             Debug.Log($"[ItemCarrySystem] {item.ItemName} 들기 완료!");
 
@@ -251,7 +264,13 @@ namespace YajaGame.Gameplay
 
             ItemBase droppedItem = ReleaseItem();
 
-            // 무기 아이템인 경우 무기 해제 처리
+            // 아이템 해제 처리 (애니메이션 재개)
+            EraserBombItem eraserBomb = droppedItem.GetComponent<EraserBombItem>();
+            if (eraserBomb != null)
+            {
+                eraserBomb.OnUnequipped();
+            }
+
             MeleeWeaponItem meleeWeapon = droppedItem.GetComponent<MeleeWeaponItem>();
             if (meleeWeapon != null)
             {
