@@ -199,8 +199,14 @@ namespace YajaGame.Gameplay
             }
 
             // 아이템 장착 처리 (애니메이션 중지)
+            WeaponPartItem weaponPart = item.GetComponent<WeaponPartItem>();
+            if (weaponPart != null)
+            {
+                Debug.Log($"[ItemCarrySystem] WeaponPartItem.OnEquipped() 호출!");
+                weaponPart.OnEquipped();
+            }
+
             // eraserBomb 변수는 위에서 이미 선언됨 (line 149)
-            Debug.Log($"[ItemCarrySystem] OnEquipped 호출 전 - eraserBomb null 여부: {eraserBomb == null}");
             if (eraserBomb != null)
             {
                 Debug.Log($"[ItemCarrySystem] EraserBombItem.OnEquipped() 호출!");
@@ -269,6 +275,12 @@ namespace YajaGame.Gameplay
             ItemBase droppedItem = ReleaseItem();
 
             // 아이템 해제 처리 (애니메이션 재개)
+            WeaponPartItem weaponPart = droppedItem.GetComponent<WeaponPartItem>();
+            if (weaponPart != null)
+            {
+                weaponPart.OnUnequipped();
+            }
+
             EraserBombItem eraserBomb = droppedItem.GetComponent<EraserBombItem>();
             if (eraserBomb != null)
             {

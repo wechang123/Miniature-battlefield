@@ -31,5 +31,25 @@ namespace YajaGame.Gameplay
                 Debug.LogWarning("[WeaponPartItem] InventoryManager를 찾을 수 없습니다!");
             }
         }
+
+        /// <summary>
+        /// 플레이어가 아이템을 들었을 때 호출
+        /// </summary>
+        public void OnEquipped()
+        {
+            // AnimateItem() 중지 (손에 제대로 붙게)
+            isPickable = false;
+            Debug.Log($"[WeaponPartItem] {weaponPartType} 장착됨 - 애니메이션 중지");
+        }
+
+        /// <summary>
+        /// 플레이어가 아이템을 버렸을 때 호출
+        /// </summary>
+        public void OnUnequipped()
+        {
+            // AnimateItem() 재개 (바닥에서 다시 애니메이션)
+            isPickable = true;
+            Debug.Log($"[WeaponPartItem] {weaponPartType} 해제됨 - 애니메이션 재개");
+        }
     }
 }
