@@ -9,11 +9,17 @@ namespace YajaGame.Gameplay
     /// </summary>
     public class ItemCarrySystem : MonoBehaviour
     {
-        [Header("Carry Settings")]
+        [Header("Carry Settings (Pencil Spear)")]
         [SerializeField] private Transform carryPosition;
         [SerializeField] private Vector3 carryOffset = Vector3.zero;
         [SerializeField] private Vector3 carryRotation = Vector3.zero;
         [SerializeField] private float carryScale = 1f;
+
+        [Header("Eraser Bomb Carry Settings")]
+        [SerializeField] private bool useEraserBombSettings = true;
+        [SerializeField] private Vector3 eraserBombOffset = Vector3.zero;
+        [SerializeField] private Vector3 eraserBombRotation = Vector3.zero;
+        [SerializeField] private float eraserBombScale = 1f;
 
         [Header("Auto Find Carry Position")]
         [SerializeField] private bool autoFindCarryPosition = true;
@@ -139,9 +145,20 @@ namespace YajaGame.Gameplay
             // 아이템을 CarryPosition의 자식으로 설정
             item.transform.SetParent(carryPosition);
 
-            // 아이템별 커스텀 설정 확인 및 적용
-            if (item.UseCustomCarrySettings)
+            // 아이템 타입별 설정 적용
+            EraserBombItem eraserBomb = item.GetComponent<EraserBombItem>();
+
+            if (eraserBomb != null && useEraserBombSettings)
             {
+                // 지우개폭탄 전용 설정
+                item.transform.localPosition = eraserBombOffset;
+                item.transform.localRotation = Quaternion.Euler(eraserBombRotation);
+                item.transform.localScale = _originalItemScale * eraserBombScale;
+                Debug.Log($"[ItemCarrySystem] 지우개폭탄 전용 설정 사용: Offset={eraserBombOffset}");
+            }
+            else if (item.UseCustomCarrySettings)
+            {
+                // 아이템별 커스텀 설정
                 item.transform.localPosition = item.CustomCarryOffset;
                 item.transform.localRotation = Quaternion.Euler(item.CustomCarryRotation);
                 item.transform.localScale = _originalItemScale * item.CustomCarryScale;
@@ -149,10 +166,11 @@ namespace YajaGame.Gameplay
             }
             else
             {
+                // 기본 설정 (연필창)
                 item.transform.localPosition = carryOffset;
                 item.transform.localRotation = Quaternion.Euler(carryRotation);
                 item.transform.localScale = _originalItemScale * carryScale;
-                Debug.Log($"[ItemCarrySystem] 기본 Carry 설정 사용");
+                Debug.Log($"[ItemCarrySystem] 기본 Carry 설정 사용 (연필창)");
             }
 
             Debug.Log($"[ItemCarrySystem] 설정된 위치: {item.transform.localPosition}, 스케일: {item.transform.localScale}");
