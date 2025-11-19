@@ -198,7 +198,7 @@ namespace YajaGame.Gameplay
             }
 
             // 아이템 장착 처리 (애니메이션 중지)
-            EraserBombItem eraserBomb = item.GetComponent<EraserBombItem>();
+            // eraserBomb 변수는 위에서 이미 선언됨 (line 149)
             if (eraserBomb != null)
             {
                 eraserBomb.OnEquipped();
