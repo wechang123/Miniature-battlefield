@@ -15,6 +15,11 @@ namespace YajaGame.Gameplay
         [SerializeField] private Vector3 carryRotation = Vector3.zero;
         [SerializeField] private float carryScale = 1f;
 
+        [Header("Eraser Bomb Carry Settings")]
+        [SerializeField] private Vector3 eraserBombOffset = new Vector3(0.15f, 0, 0.1f);
+        [SerializeField] private Vector3 eraserBombRotation = new Vector3(0, 90, 0);
+        [SerializeField] private float eraserBombScale = 1f;
+
         [Header("Auto Find Carry Position")]
         [SerializeField] private bool autoFindCarryPosition = true;
         [SerializeField] private string carryPositionName = "CarryPosition";
@@ -139,9 +144,20 @@ namespace YajaGame.Gameplay
             // 아이템을 CarryPosition의 자식으로 설정
             item.transform.SetParent(carryPosition);
 
-            // 아이템별 커스텀 설정 확인 및 적용
-            if (item.UseCustomCarrySettings)
+            // 아이템 타입별 설정 적용
+            EraserBombItem eraserBomb = item.GetComponent<EraserBombItem>();
+
+            if (eraserBomb != null)
             {
+                // 지우개폭탄 전용 설정
+                item.transform.localPosition = eraserBombOffset;
+                item.transform.localRotation = Quaternion.Euler(eraserBombRotation);
+                item.transform.localScale = _originalItemScale * eraserBombScale;
+                Debug.Log($"[ItemCarrySystem] 지우개폭탄 전용 설정 사용: Offset={eraserBombOffset}");
+            }
+            else if (item.UseCustomCarrySettings)
+            {
+                // 아이템별 커스텀 설정
                 item.transform.localPosition = item.CustomCarryOffset;
                 item.transform.localRotation = Quaternion.Euler(item.CustomCarryRotation);
                 item.transform.localScale = _originalItemScale * item.CustomCarryScale;
@@ -149,6 +165,7 @@ namespace YajaGame.Gameplay
             }
             else
             {
+                // 기본 설정 (연필창 등)
                 item.transform.localPosition = carryOffset;
                 item.transform.localRotation = Quaternion.Euler(carryRotation);
                 item.transform.localScale = _originalItemScale * carryScale;
