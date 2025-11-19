@@ -16,7 +16,7 @@ namespace YajaGame.Gameplay
         [SerializeField] private float carryScale = 1f;
 
         [Header("Eraser Bomb Carry Settings")]
-        [SerializeField] private Vector3 eraserBombOffset = new Vector3(0.15f, 0, 0.1f);
+        [SerializeField] private Vector3 eraserBombOffset = new Vector3(100f, 0, 0.1f);
         [SerializeField] private Vector3 eraserBombRotation = new Vector3(0, 90, 0);
         [SerializeField] private float eraserBombScale = 1f;
 
