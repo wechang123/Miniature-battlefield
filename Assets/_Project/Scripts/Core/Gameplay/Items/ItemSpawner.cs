@@ -17,7 +17,7 @@ namespace YajaGame.Gameplay
         [Header("Spawn Area")]
         [SerializeField] private Vector3 spawnAreaCenter = Vector3.zero; // 스폰 영역 중심
         [SerializeField] private Vector3 spawnAreaSize = new Vector3(20, 0, 20); // 스폰 영역 크기 (XZ 평면)
-        [SerializeField] private float spawnHeight = 1f; // 바닥에서 얼마나 위에 스폰할지
+        [SerializeField] private float spawnHeight = 0.3f; // 바닥에서 얼마나 위에 스폰할지 (낮춤)
         [SerializeField] private LayerMask groundLayer; // 바닥 레이어
 
         [Header("Debug")]
@@ -68,9 +68,25 @@ namespace YajaGame.Gameplay
 
             // 아이템 생성
             GameObject item = Instantiate(itemPrefab, randomPosition, Quaternion.identity);
+
+            // 활성화 확인 및 초기화 (연필창 버그 방지)
+            if (!item.activeInHierarchy)
+            {
+                item.SetActive(true);
+                Debug.LogWarning($"[ItemSpawner] 생성된 아이템이 비활성 상태였습니다: {item.name}");
+            }
+
+            // ItemBase 컴포넌트 확인
+            ItemBase itemBase = item.GetComponent<ItemBase>();
+            if (itemBase != null && !itemBase.enabled)
+            {
+                itemBase.enabled = true;
+                Debug.LogWarning($"[ItemSpawner] ItemBase가 비활성 상태였습니다: {item.name}");
+            }
+
             spawnedItems.Add(item);
 
-            Debug.Log($"[ItemSpawner] 아이템 스폰: {randomPosition}");
+            Debug.Log($"[ItemSpawner] 아이템 스폰: {item.name} at {randomPosition}");
         }
 
         private Vector3 GetRandomSpawnPosition()
