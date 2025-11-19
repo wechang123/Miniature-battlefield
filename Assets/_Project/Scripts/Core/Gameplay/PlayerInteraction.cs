@@ -96,6 +96,10 @@ namespace YajaGame.Gameplay
 
             foreach (var col in hitColliders)
             {
+                // 비활성화된 오브젝트 스킵 (유령 아이템 방지)
+                if (!col.gameObject.activeInHierarchy)
+                    continue;
+
                 IPickupable pickupable = col.GetComponent<IPickupable>();
                 if (pickupable != null && pickupable.IsPickable)
                 {
@@ -149,6 +153,14 @@ namespace YajaGame.Gameplay
 
             if (_nearestItem != null && _nearestItem.IsPickable)
             {
+                // GameObject 활성화 상태 확인 (유령 아이템 방지)
+                if (_nearestItem.Transform == null || !_nearestItem.Transform.gameObject.activeInHierarchy)
+                {
+                    Debug.LogWarning("[PlayerInteraction] 아이템이 비활성화 상태이거나 씬에 없습니다. 무시합니다.");
+                    _nearestItem = null;
+                    return;
+                }
+
                 // 거리 재확인
                 float distance = Vector3.Distance(transform.position, _nearestItem.Transform.position);
                 if (distance <= interactionRange)

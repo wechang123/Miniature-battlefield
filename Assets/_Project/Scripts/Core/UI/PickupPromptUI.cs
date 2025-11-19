@@ -30,6 +30,11 @@ namespace YajaGame.UI
         private Vector3 originalScale;
         private bool isShowing = false;
 
+        // 아이템 위치 추적용
+        private IPickupable _currentItem;
+        private Camera _mainCamera;
+        private RectTransform _promptRectTransform;
+
         private void Awake()
         {
             canvasGroup = promptPanel.GetComponent<CanvasGroup>();
@@ -39,6 +44,10 @@ namespace YajaGame.UI
             }
 
             originalScale = promptPanel.transform.localScale;
+
+            // 카메라 및 RectTransform 초기화
+            _mainCamera = Camera.main;
+            _promptRectTransform = promptPanel.GetComponent<RectTransform>();
 
             // 초기 상태: 숨김
             Hide();
@@ -52,6 +61,22 @@ namespace YajaGame.UI
 
         private void Update()
         {
+            // 아이템 위치 추적 (월드 → 스크린 좌표 변환)
+            if (isShowing && _currentItem != null && _mainCamera != null && _promptRectTransform != null)
+            {
+                // 아이템 월드 위치 (약간 위로)
+                Vector3 worldPos = _currentItem.Transform.position + Vector3.up * 0.5f;
+
+                // 월드 → 스크린 좌표 변환
+                Vector3 screenPos = _mainCamera.WorldToScreenPoint(worldPos);
+
+                // 카메라 앞쪽에 있을 때만 표시
+                if (screenPos.z > 0)
+                {
+                    _promptRectTransform.position = screenPos;
+                }
+            }
+
             if (isShowing && enableAnimation)
             {
                 AnimatePrompt();
@@ -69,6 +94,7 @@ namespace YajaGame.UI
             if (item == null) return;
 
             isShowing = true;
+            _currentItem = item; // 현재 아이템 저장 (위치 추적용)
             promptPanel.SetActive(true);
 
             // 아이템 이름 표시 (영문)
@@ -92,6 +118,7 @@ namespace YajaGame.UI
         public void Hide()
         {
             isShowing = false;
+            _currentItem = null; // 아이템 참조 제거
         }
 
         /// <summary>

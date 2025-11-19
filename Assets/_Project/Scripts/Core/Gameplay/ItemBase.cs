@@ -42,7 +42,7 @@ namespace YajaGame.Gameplay
 
         [Header("Visual Feedback")]
         [SerializeField] protected float bobSpeed = 1f;
-        [SerializeField] protected float bobHeight = 0.3f;
+        [SerializeField] protected float bobHeight = 0.1f; // 떠있는 높이 (낮춤)
         [SerializeField] protected float rotationSpeed = 50f;
 
         [Header("Carry Settings (Optional Override)")]
