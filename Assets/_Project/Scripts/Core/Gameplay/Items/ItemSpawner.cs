@@ -17,7 +17,7 @@ namespace YajaGame.Gameplay
         [Header("Spawn Area")]
         [SerializeField] private Vector3 spawnAreaCenter = Vector3.zero; // 스폰 영역 중심
         [SerializeField] private Vector3 spawnAreaSize = new Vector3(20, 0, 20); // 스폰 영역 크기 (XZ 평면)
-        [SerializeField] private float spawnHeight = 0.3f; // 바닥에서 얼마나 위에 스폰할지 (낮춤)
+        [SerializeField] private float spawnHeight = 0f; // 바닥에 바로 생성
         [SerializeField] private LayerMask groundLayer; // 바닥 레이어
 
         [Header("Debug")]

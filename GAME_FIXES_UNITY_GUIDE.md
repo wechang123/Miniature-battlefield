@@ -17,13 +17,19 @@
 
 ### 1. 유령 연필창 아이템 제거 ⚠️ 중요!
 
-**문제**: Playground 씬에 숨겨진 `PencilSpear_Item` 오브젝트가 존재합니다.
+**문제**: Player의 CarryPosition 안에 `PencilSpear_Item`이 숨어있어서 게임 시작 시 "E 줍기" UI가 표시됩니다.
 
 **해결**:
-1. **Hierarchy** 창 상단 검색창에 `PencilSpear_Item` 입력
-2. 찾은 오브젝트를 선택
-3. **Delete** 키 또는 우클릭 → **Delete** 클릭
-4. **File > Save** (Ctrl+S) 저장
+1. **Hierarchy**에서 **Player** 오브젝트 확장
+2. 자식 오브젝트들을 펼쳐서 **CarryPosition** 찾기
+   - 경로 예시: Player > [RightHand bone] > CarryPosition
+3. **CarryPosition** 안에 **PencilSpear_Item**이 있으면 선택
+4. **Delete** 키 또는 우클릭 → **Delete** 클릭
+5. **File > Save** (Ctrl+S) 저장
+
+**확인 방법**:
+- CarryPosition은 비어있어야 합니다 (자식 오브젝트 없음)
+- 게임 실행 시 "E 줍기" UI가 즉시 뜨지 않아야 함
 
 ---
 
@@ -97,13 +103,18 @@
 
 ## 🎮 테스트 체크리스트
 
-### 문제 2+3: 연필창 줍기
-- [ ] 게임 시작 시 E 키를 눌러도 아무 일도 일어나지 않음
-- [ ] 바닥에 생성된 연필창 근처에서 E 키로 줍기 가능
-- [ ] 지우개폭탄도 정상적으로 줍기 가능
+### 유령 아이템 UI 버그
+- [ ] 게임 시작 시 "E 줍기" UI가 표시되지 않음
+- [ ] 아이템 근처에 갈 때만 UI가 표시됨
 
-### 문제 4: 아이템 높이
-- [ ] 아이템이 바닥 0.4m 정도 높이에 떠있음 (이전보다 낮음)
+### 아이템 줍기 시스템
+- [ ] 연필창 부품(WeaponPartItem): 주우면 즉시 사라지고 인벤토리에 추가됨 (손에 들지 않음)
+- [ ] 지우개 부품(EraserBombItem): 주우면 즉시 사라지고 인벤토리에 추가됨 (손에 들지 않음)
+- [ ] 연필창 완성품(MeleeWeaponItem): 손에 들고 다님, 버릴 수 있음
+- [ ] 버린 연필창 완성품을 다시 줍기 가능
+
+### 아이템 배치
+- [ ] 아이템이 바닥에 배치되어 있음 (떠다니지 않음)
 - [ ] 줍기 애니메이션이 자연스러움
 
 ### 문제 5: UI 위치
@@ -120,8 +131,9 @@
 
 ## 🔍 문제 해결
 
-### 연필창이 여전히 허공에서 주워짐
-→ Hierarchy에서 `PencilSpear`로 검색하여 모든 오브젝트 확인 후 삭제
+### 게임 시작 시 "E 줍기" UI가 뜸
+→ **Player > CarryPosition** 안에 PencilSpear_Item이 있는지 확인 후 삭제
+→ Hierarchy에서 Player 확장 → CarryPosition 확인 → 자식 오브젝트 모두 삭제
 
 ### 선생님이 여전히 책상을 통과함
 
@@ -160,11 +172,17 @@
   - Canvas > Render Mode: **Screen Space - Camera**
   - Canvas > Render Camera: **Main Camera**로 설정
 
-### 아이템이 여전히 높이 떠있음
-→ Unity에서 기존 ItemSpawner/RandomItemSpawner 오브젝트의 Inspector 확인:
-  - Spawn Height: 0.3으로 변경
-→ ItemBase 프리팹의 Inspector 확인:
-  - Bob Height: 0.1로 변경
+### 아이템이 여전히 떠있음
+→ 코드가 업데이트되었지만 기존 프리팹 설정이 남아있을 수 있음
+→ Unity에서 ItemSpawner/RandomItemSpawner Inspector 확인:
+  - Spawn Height: **0**으로 변경
+→ ItemBase 프리팹들 (PencilSpear_Item, EraserBomb_Item 등) Inspector 확인:
+  - Bob Height: **0**으로 변경
+
+### 무기 부품을 주웠는데 손에 들고 다님 (사라지지 않음)
+→ 코드 업데이트 후 Unity 재시작 필요
+→ Play Mode 종료 후 다시 시작
+→ 여전히 문제면: Build Settings > Player Settings > Scripting Backend 확인
 
 ---
 
