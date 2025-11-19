@@ -254,11 +254,18 @@ namespace YajaGame.Gameplay
             // ItemBase 가져오기
             ItemBase itemBase = _nearestItem.Transform.GetComponent<ItemBase>();
 
-            // 파편 아이템인지 확인 (파편은 인벤토리에만 추가, 들지 않음)
+            // 소모품 아이템 확인 (파편, 무기 부품 등 - 인벤토리에만 추가, 들지 않음)
             EraserFragmentItem fragmentItem = itemBase?.GetComponent<EraserFragmentItem>();
-            if (fragmentItem != null)
+            WeaponPartItem weaponPartItem = itemBase?.GetComponent<WeaponPartItem>();
+            EraserBombItem eraserBombItem = itemBase?.GetComponent<EraserBombItem>();
+
+            // 소모품은 즉시 OnPickup() 호출 → 인벤토리 추가 → 오브젝트 삭제
+            if (fragmentItem != null || weaponPartItem != null || eraserBombItem != null)
             {
-                Debug.Log("[PlayerInteraction] 파편 감지 - 인벤토리에 추가");
+                string itemTypeName = fragmentItem != null ? "파편" :
+                                     weaponPartItem != null ? "무기 부품" : "지우개 폭탄";
+                Debug.Log($"[PlayerInteraction] {itemTypeName} 감지 - 인벤토리에 추가");
+
                 _nearestItem.OnPickup(); // 인벤토리 추가 후 자동 파괴
                 RemoveHighlight();
                 _nearestItem = null;
@@ -266,7 +273,7 @@ namespace YajaGame.Gameplay
                 return;
             }
 
-            // 일반 아이템: ItemCarrySystem으로 들기
+            // 무기 아이템: ItemCarrySystem으로 들기 (MeleeWeaponItem 등)
             if (_carrySystem != null && itemBase != null)
             {
                 bool success = _carrySystem.PickupItem(itemBase);

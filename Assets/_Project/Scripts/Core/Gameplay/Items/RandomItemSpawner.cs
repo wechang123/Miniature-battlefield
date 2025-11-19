@@ -27,7 +27,7 @@ namespace YajaGame.Gameplay
         [Header("Spawn Area")]
         [SerializeField] private Vector3 spawnAreaCenter = Vector3.zero;
         [SerializeField] private Vector3 spawnAreaSize = new Vector3(20, 0, 20);
-        [SerializeField] private float spawnHeight = 0.3f; // 바닥에서 스폰 높이 (낮춤)
+        [SerializeField] private float spawnHeight = 0f; // 바닥에 바로 생성
         [SerializeField] private LayerMask groundLayer;
 
         [Header("Debug")]
