@@ -147,6 +147,7 @@ namespace YajaGame.Gameplay
 
             // 아이템 타입별 설정 적용
             EraserBombItem eraserBomb = item.GetComponent<EraserBombItem>();
+            Debug.Log($"[ItemCarrySystem] EraserBombItem 체크: {(eraserBomb != null ? "발견됨" : "없음")}, useEraserBombSettings: {useEraserBombSettings}");
 
             if (eraserBomb != null && useEraserBombSettings)
             {
@@ -199,14 +200,17 @@ namespace YajaGame.Gameplay
 
             // 아이템 장착 처리 (애니메이션 중지)
             // eraserBomb 변수는 위에서 이미 선언됨 (line 149)
+            Debug.Log($"[ItemCarrySystem] OnEquipped 호출 전 - eraserBomb null 여부: {eraserBomb == null}");
             if (eraserBomb != null)
             {
+                Debug.Log($"[ItemCarrySystem] EraserBombItem.OnEquipped() 호출!");
                 eraserBomb.OnEquipped();
             }
 
             MeleeWeaponItem meleeWeapon = item.GetComponent<MeleeWeaponItem>();
             if (meleeWeapon != null)
             {
+                Debug.Log($"[ItemCarrySystem] MeleeWeaponItem.OnEquipped() 호출!");
                 meleeWeapon.OnEquipped();
             }
 
