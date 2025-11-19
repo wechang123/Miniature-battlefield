@@ -79,9 +79,9 @@ MonoBehaviour:
   bobHeight: 0
   rotationSpeed: 0
   useCustomCarrySettings: 1
-  customCarryOffset: {x: -25, y: 5, z: 0}
-  customCarryRotation: {x: -90, y: 90, z: 90}
-  customCarryScale: 80
+  customCarryOffset: {x: 0.15, y: 0, z: 0.1}
+  customCarryRotation: {x: 0, y: 90, z: 0}
+  customCarryScale: 1
   weaponPartType: 1
 --- !u!1001 &6195632596595369861
 PrefabInstance:
