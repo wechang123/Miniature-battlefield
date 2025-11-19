@@ -108,10 +108,10 @@
 - [ ] 아이템 근처에 갈 때만 UI가 표시됨
 
 ### 아이템 줍기 시스템
-- [ ] 연필창 부품(WeaponPartItem): 주우면 즉시 사라지고 인벤토리에 추가됨 (손에 들지 않음)
-- [ ] 지우개 부품(EraserBombItem): 주우면 즉시 사라지고 인벤토리에 추가됨 (손에 들지 않음)
-- [ ] 연필창 완성품(MeleeWeaponItem): 손에 들고 다님, 버릴 수 있음
-- [ ] 버린 연필창 완성품을 다시 줍기 가능
+- [ ] 지우개 파편(EraserFragmentItem): 주우면 즉시 사라지고 인벤토리에 추가됨 (유일한 소모품)
+- [ ] 지우개 폭탄(EraserBombItem): 손에 들고 다님, 던질 수 있음
+- [ ] 연필창(MeleeWeaponItem): 손에 들고 다님, 베기 공격 가능
+- [ ] 버린 무기 아이템을 다시 줍기 가능
 
 ### 아이템 배치
 - [ ] 아이템이 바닥에 배치되어 있음 (떠다니지 않음)
@@ -173,16 +173,11 @@
   - Canvas > Render Camera: **Main Camera**로 설정
 
 ### 아이템이 여전히 떠있음
-→ 코드가 업데이트되었지만 기존 프리팹 설정이 남아있을 수 있음
+→ 코드가 업데이트되었지만 **씬에 저장된 Inspector 값이 우선**됨
 → Unity에서 ItemSpawner/RandomItemSpawner Inspector 확인:
-  - Spawn Height: **0**으로 변경
+  - **Spawn Height: 0**으로 변경 (현재 1이면 변경 필요)
 → ItemBase 프리팹들 (PencilSpear_Item, EraserBomb_Item 등) Inspector 확인:
-  - Bob Height: **0**으로 변경
-
-### 무기 부품을 주웠는데 손에 들고 다님 (사라지지 않음)
-→ 코드 업데이트 후 Unity 재시작 필요
-→ Play Mode 종료 후 다시 시작
-→ 여전히 문제면: Build Settings > Player Settings > Scripting Backend 확인
+  - **Bob Height: 0**으로 변경
 
 ---
 
