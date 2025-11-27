@@ -1,22 +1,29 @@
 using UnityEngine;
-using TMPro;  // TextMeshPro »ç¿ë ½Ã
-// using UnityEngine.UI;  // Legacy Text »ç¿ë ½Ã
+using TMPro;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance;  // ½Ì±ÛÅæ
-    
+    public static GameManager Instance;
+
     [Header("UI")]
-    public GameObject gameOverText;      // °ÔÀÓ¿À¹ö ÅØ½ºÆ®
-    
+    public GameObject gameOverText;
+
     [Header("Settings")]
-    public float restartDelay = 3f;      // Àç½ÃÀÛ±îÁö ´ë±â ½Ã°£
-    
+    public float restartDelay = 3f;
+
+    [Header("Player & Camera")]
+    public GameObject player;
+    public Camera playerCamera;
+    public Transform npcAttacker;
+    public Vector3 cameraOffset = new Vector3(0, 1.5f, -2f);
+    public bool lockCameraOnAttack = true;
+
     private bool isGameOver = false;
+    private bool isCameraLocked = false;
 
     void Awake()
     {
-        // ½Ì±ÛÅæ ÆÐÅÏ
         if (Instance == null)
         {
             Instance = this;
@@ -29,64 +36,125 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // °ÔÀÓ ½ÃÀÛ ½Ã UI ¼û±è
         if (gameOverText != null)
         {
             gameOverText.SetActive(false);
         }
-    }
 
-    public void PlayerCaught()
-    {
-        if (isGameOver) return;  // ÀÌ¹Ì °ÔÀÓ¿À¹ö¸é ¹«½Ã
-        
-        isGameOver = true;
-        
-        // °ÔÀÓ¿À¹ö ÅØ½ºÆ® Ç¥½Ã
-        if (gameOverText != null)
+        // ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ï¿½ Ä«ï¿½Þ¶ï¿½ Ã£ï¿½ï¿½
+        if (player == null)
         {
-            gameOverText.SetActive(true);
+            player = GameObject.FindGameObjectWithTag("Player");
         }
-        
-        // ÇÃ·¹ÀÌ¾î ¿òÁ÷ÀÓ Á¤Áö
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-        {
-            // Character Controller ºñÈ°¼ºÈ­
-            var controller = player.GetComponent<CharacterController>();
-            if (controller != null)
-            {
-                controller.enabled = false;
-            }
-            
-            // Third Person Controller ºñÈ°¼ºÈ­
-            var tpc = player.GetComponent<MonoBehaviour>();
-            if (tpc != null)
-            {
-                tpc.enabled = false;
-            }
-        }
-        
-        Debug.Log("ÇÃ·¹ÀÌ¾î ¾Æ¿ô!");
-        
-        // 3ÃÊ ÈÄ Àç½ÃÀÛ
-        Invoke(nameof(RestartGame), restartDelay);
-    }
 
-    void RestartGame()
-    {
-        // ÇöÀç ¾À Àç½ÃÀÛ
-        UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
-        );
+        if (playerCamera == null)
+        {
+            playerCamera = Camera.main;
+        }
     }
 
     void Update()
     {
-        // RÅ°·Î Áï½Ã Àç½ÃÀÛ (Å×½ºÆ®¿ë)
-        //if (isGameOver && Input.GetKeyDown(KeyCode.R))
-        //{
-        //    RestartGame();
-        //}
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ä«ï¿½Þ¶ï¿½ ï¿½ï¿½ï¿½ï¿½
+        if (isCameraLocked && npcAttacker != null && playerCamera != null)
+        {
+            LockCameraOnNPC();
+        }
+    }
+
+    // ï¿½âº» È£ï¿½ï¿½ (ï¿½Å°ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
+    public void PlayerCaught()
+    {
+        PlayerCaught(null);
+    }
+
+    // Transform ï¿½Þ´ï¿½ ï¿½Þ¼ï¿½ï¿½ï¿½ (Ä«ï¿½Þ¶ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    public void PlayerCaught(Transform attacker)
+    {
+        if (isGameOver) return;
+
+        isGameOver = true;
+        npcAttacker = attacker;
+
+        Debug.Log("ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½Æ¿ï¿½!");
+
+        // ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+        FreezePlayer();
+
+        // Ä«ï¿½Þ¶ï¿½ ï¿½ï¿½ï¿½ï¿½
+        if (lockCameraOnAttack && attacker != null)
+        {
+            isCameraLocked = true;
+        }
+
+        // UI Ç¥ï¿½ï¿½
+        if (gameOverText != null)
+        {
+            gameOverText.SetActive(true);
+        }
+
+        // 3ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½
+        Invoke(nameof(RestartGame), restartDelay);
+    }
+
+    // ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½
+    void FreezePlayer()
+    {
+        if (player == null) return;
+
+        // ï¿½ï¿½ï¿½ MonoBehaviour ï¿½ï¿½Å©ï¿½ï¿½Æ® ï¿½ï¿½È°ï¿½ï¿½È­
+        MonoBehaviour[] scripts = player.GetComponents<MonoBehaviour>();
+        foreach (MonoBehaviour script in scripts)
+        {
+            if (script != this)
+            {
+                script.enabled = false;
+            }
+        }
+
+        // CharacterController ï¿½ï¿½È°ï¿½ï¿½È­
+        CharacterController characterController = player.GetComponent<CharacterController>();
+        if (characterController != null)
+        {
+            characterController.enabled = false;
+        }
+
+        // Rigidbodyï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+        Rigidbody rb = player.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+
+        Debug.Log("ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½");
+    }
+
+    // Ä«ï¿½Þ¶ï¿½ NPCï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    void LockCameraOnNPC()
+    {
+        // NPC ï¿½ï¿½ï¿½ï¿½ ï¿½à°£ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        Vector3 targetPosition = npcAttacker.position + npcAttacker.forward * cameraOffset.z + Vector3.up * cameraOffset.y;
+        
+        playerCamera.transform.position = Vector3.Lerp(
+            playerCamera.transform.position, 
+            targetPosition, 
+            Time.deltaTime * 5f
+        );
+
+        // NPCï¿½ï¿½ ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½
+        Vector3 lookDirection = (npcAttacker.position + Vector3.up * 1.2f) - playerCamera.transform.position;
+        Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
+        
+        playerCamera.transform.rotation = Quaternion.Slerp(
+            playerCamera.transform.rotation,
+            targetRotation,
+            Time.deltaTime * 5f
+        );
+    }
+
+    void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }

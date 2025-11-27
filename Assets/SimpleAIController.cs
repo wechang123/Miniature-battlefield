@@ -5,10 +5,10 @@ public class SimpleAIController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveRadius = 20f;
-    public float minWaitTime = 0f;        // ← 0으로 변경
-    public float maxWaitTime = 0.3f;      // ← 0.3으로 변경
+    public float minWaitTime = 0f;
+    public float maxWaitTime = 0.3f;
     public float moveSpeed = 2f;
-    public float stuckCheckTime = 3f;     // ← 추가: 멈춤 감지 시간
+    public float stuckCheckTime = 3f;
 
     [Header("Vision Settings")]
     public float viewAngle = 60f;
@@ -24,15 +24,18 @@ public class SimpleAIController : MonoBehaviour
     public bool useAnimator = true;
     public float walkAnimationSpeed = 2f;
     public float runAnimationSpeed = 5f;
+    
+    [Header("Attack")]
+    public string attackTrigger = "Attack";
+    public float attackDuration = 1f;
 
     private NavMeshAgent agent;
     private Transform player;
     private Animator animator;
     private bool isChasing = false;
+    private bool isAttacking = false;
     private float loseTimer = 0f;
     private float waitTimer = 0f;
-    
-    // ← 추가: 멈춤 감지
     private Vector3 lastPosition;
     private float stuckTimer = 0f;
 
@@ -53,12 +56,14 @@ public class SimpleAIController : MonoBehaviour
             player = playerObject.transform;
         }
 
-        lastPosition = transform.position;  // ← 추가
+        lastPosition = transform.position;
         MoveToRandomPoint();
     }
 
     void Update()
     {
+        if (isAttacking) return;
+
         bool seePlayer = CanSeePlayer();
 
         if (seePlayer)
@@ -72,7 +77,7 @@ public class SimpleAIController : MonoBehaviour
             
             agent.SetDestination(player.position);
             loseTimer = 0f;
-            stuckTimer = 0f;  // ← 추가: 타이머 리셋
+            stuckTimer = 0f;
             
             float distanceToPlayer = Vector3.Distance(transform.position, player.position);
             if (distanceToPlayer <= catchDistance)
@@ -94,7 +99,6 @@ public class SimpleAIController : MonoBehaviour
         }
         else
         {
-            // 목적지 도착 확인
             if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
                 waitTimer -= Time.deltaTime;
@@ -105,36 +109,69 @@ public class SimpleAIController : MonoBehaviour
                 }
             }
             
-            // ← 추가: 멈춤 감지 (순찰 중에만)
             CheckIfStuck();
         }
 
         UpdateAnimation();
-        lastPosition = transform.position;  // ← 추가: 위치 업데이트
+        lastPosition = transform.position;
     }
 
-    // ← 추가: 멈춤 감지 함수
+    void CatchPlayer()
+    {
+        Debug.Log("플레이어를 잡았습니다!");
+        
+        isAttacking = true;
+        agent.isStopped = true;
+        
+        // 플레이어 방향 보기
+        Vector3 directionToPlayer = player.position - transform.position;
+        directionToPlayer.y = 0;
+        if (directionToPlayer != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(directionToPlayer);
+        }
+        
+        // 공격 애니메이션 재생
+        if (animator != null)
+        {
+            animator.SetTrigger(attackTrigger);
+        }
+        
+        // GameManager에 자신의 Transform 전달
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.PlayerCaught(transform);
+        }
+        
+        // 공격 모션 후 비활성화
+        Invoke(nameof(DisableAI), attackDuration);
+    }
+
+    // AI 비활성화
+    void DisableAI()
+    {
+        this.enabled = false;
+    }
+
     void CheckIfStuck()
     {
         float moveDistance = Vector3.Distance(transform.position, lastPosition);
         
-        // 거의 움직이지 않음
         if (moveDistance < 0.01f && agent.hasPath)
         {
             stuckTimer += Time.deltaTime;
             
-            // 일정 시간 이상 멈춰있으면 새 목적지
             if (stuckTimer >= stuckCheckTime)
             {
                 Debug.Log("NPC가 멈춰있음. 새 목적지로 이동.");
-                agent.ResetPath();  // 경로 리셋
+                agent.ResetPath();
                 MoveToRandomPoint();
                 stuckTimer = 0f;
             }
         }
         else
         {
-            stuckTimer = 0f;  // 움직이고 있으면 타이머 리셋
+            stuckTimer = 0f;
         }
     }
 
@@ -165,43 +202,26 @@ public class SimpleAIController : MonoBehaviour
         }
     }
 
-    void CatchPlayer()
-    {
-        Debug.Log("플레이어를 잡았습니다!");
-        
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.PlayerCaught();
-        }
-        
-        agent.isStopped = true;
-        this.enabled = false;
-    }
-
     void MoveToRandomPoint()
     {
-        // ← 수정: 더 간단하고 안정적인 랜덤 이동
-        for (int i = 0; i < 10; i++)  // 최대 10번 시도
+        for (int i = 0; i < 10; i++)
         {
             Vector2 randomCircle = Random.insideUnitCircle * moveRadius;
             Vector3 randomPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
 
             if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, moveRadius, NavMesh.AllAreas))
             {
-                // 경로 계산 가능한지 확인
                 NavMeshPath path = new NavMeshPath();
                 if (agent.CalculatePath(hit.position, path) && path.status == NavMeshPathStatus.PathComplete)
                 {
                     agent.SetDestination(hit.position);
                     waitTimer = Random.Range(minWaitTime, maxWaitTime);
-                    stuckTimer = 0f;  // ← 추가: 타이머 리셋
+                    stuckTimer = 0f;
                     return;
                 }
             }
         }
         
-        // 10번 실패하면 잠시 후 재시도
-        Debug.Log("경로를 찾지 못함. 0.5초 후 재시도.");
         Invoke(nameof(MoveToRandomPoint), 0.5f);
     }
 
