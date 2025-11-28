@@ -25,6 +25,10 @@ public class SimpleAIController : MonoBehaviour
     public float walkAnimationSpeed = 2f;
     public float runAnimationSpeed = 5f;
 
+    [Header("Attack")]
+    public string attackTrigger = "Attack";
+    public float attackDuration = 1f;
+
     [Header("Flashlight")]
     public Light flashlight; // 손전등 (Spot Light)
     public float patrolLightIntensity = 1.5f;
@@ -34,9 +38,9 @@ public class SimpleAIController : MonoBehaviour
     private Transform player;
     private Animator animator;
     private bool isChasing = false;
+    private bool isAttacking = false;
     private float loseTimer = 0f;
     private float waitTimer = 0f;
-
     private Vector3 lastPosition;
     private float stuckTimer = 0f;
 
@@ -65,37 +69,8 @@ public class SimpleAIController : MonoBehaviour
             }
         }
 
-        // ItemHolder에서 손전등 자동 찾기
-        if (flashlight == null)
-        {
-            ItemHolder itemHolder = GetComponent<ItemHolder>();
-            if (itemHolder != null)
-            {
-                // 잠시 대기 후 손전등 찾기 (Instantiate 후)
-                Invoke(nameof(FindFlashlightFromItemHolder), 0.1f);
-            }
-        }
-
         lastPosition = transform.position;
         MoveToRandomPoint();
-    }
-
-    void FindFlashlightFromItemHolder()
-    {
-        ItemHolder itemHolder = GetComponent<ItemHolder>();
-        if (itemHolder != null)
-        {
-            GameObject item = itemHolder.GetCurrentItem();
-            if (item != null)
-            {
-                flashlight = item.GetComponentInChildren<Light>();
-                if (flashlight != null)
-                {
-                    flashlight.intensity = patrolLightIntensity;
-                    Debug.Log("[SimpleAIController] ItemHolder에서 손전등 찾음!");
-                }
-            }
-        }
     }
 
     void Update()
@@ -110,6 +85,8 @@ public class SimpleAIController : MonoBehaviour
                 return;
             }
         }
+
+        if (isAttacking) return;
 
         bool seePlayer = CanSeePlayer();
 
@@ -142,47 +119,79 @@ public class SimpleAIController : MonoBehaviour
         }
         else
         {
-            // ������ ���� Ȯ��
             if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
                 waitTimer -= Time.deltaTime;
-                
+
                 if (waitTimer <= 0f)
                 {
                     MoveToRandomPoint();
                 }
             }
-            
-            // �� �߰�: ���� ���� (���� �߿���)
+
             CheckIfStuck();
         }
 
         UpdateAnimation();
-        lastPosition = transform.position;  // �� �߰�: ��ġ ������Ʈ
+        lastPosition = transform.position;
     }
 
-    // �� �߰�: ���� ���� �Լ�
+    void CatchPlayer()
+    {
+        Debug.Log("플레이어를 잡았습니다!");
+
+        isAttacking = true;
+        agent.isStopped = true;
+
+        // 플레이어 방향 바라보기
+        Vector3 directionToPlayer = player.position - transform.position;
+        directionToPlayer.y = 0;
+        if (directionToPlayer != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(directionToPlayer);
+        }
+
+        // 공격 애니메이션 재생
+        if (animator != null)
+        {
+            animator.SetTrigger(attackTrigger);
+        }
+
+        // GameManager에 자신의 Transform 전달
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.PlayerCaught(transform);
+        }
+
+        // 공격 종료 후 비활성화
+        Invoke(nameof(DisableAI), attackDuration);
+    }
+
+    // AI 비활성화
+    void DisableAI()
+    {
+        this.enabled = false;
+    }
+
     void CheckIfStuck()
     {
         float moveDistance = Vector3.Distance(transform.position, lastPosition);
-        
-        // ���� �������� ����
+
         if (moveDistance < 0.01f && agent.hasPath)
         {
             stuckTimer += Time.deltaTime;
-            
-            // ���� �ð� �̻� ���������� �� ������
+
             if (stuckTimer >= stuckCheckTime)
             {
-                Debug.Log("NPC�� ��������. �� �������� �̵�.");
-                agent.ResetPath();  // ��� ����
+                Debug.Log("NPC가 막혔습니다. 새 위치로 이동.");
+                agent.ResetPath();
                 MoveToRandomPoint();
                 stuckTimer = 0f;
             }
         }
         else
         {
-            stuckTimer = 0f;  // �����̰� ������ Ÿ�̸� ����
+            stuckTimer = 0f;
         }
     }
 
@@ -191,7 +200,7 @@ public class SimpleAIController : MonoBehaviour
         if (!useAnimator || animator == null) return;
 
         float currentSpeed = agent.velocity.magnitude;
-        
+
         if (currentSpeed < 0.1f)
         {
             animator.SetFloat("MotionSpeed", 0f);
@@ -200,7 +209,7 @@ public class SimpleAIController : MonoBehaviour
         }
 
         animator.SetFloat("MotionSpeed", 1f);
-        
+
         if (isChasing)
         {
             float speedRatio = currentSpeed / runAnimationSpeed;
@@ -213,43 +222,26 @@ public class SimpleAIController : MonoBehaviour
         }
     }
 
-    void CatchPlayer()
-    {
-        Debug.Log("�÷��̾ ��ҽ��ϴ�!");
-        
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.PlayerCaught();
-        }
-        
-        agent.isStopped = true;
-        this.enabled = false;
-    }
-
     void MoveToRandomPoint()
     {
-        // �� ����: �� �����ϰ� �������� ���� �̵�
-        for (int i = 0; i < 10; i++)  // �ִ� 10�� �õ�
+        for (int i = 0; i < 10; i++)
         {
             Vector2 randomCircle = Random.insideUnitCircle * moveRadius;
             Vector3 randomPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
 
             if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, moveRadius, NavMesh.AllAreas))
             {
-                // ��� ��� �������� Ȯ��
                 NavMeshPath path = new NavMeshPath();
                 if (agent.CalculatePath(hit.position, path) && path.status == NavMeshPathStatus.PathComplete)
                 {
                     agent.SetDestination(hit.position);
                     waitTimer = Random.Range(minWaitTime, maxWaitTime);
-                    stuckTimer = 0f;  // �� �߰�: Ÿ�̸� ����
+                    stuckTimer = 0f;
                     return;
                 }
             }
         }
-        
-        // 10�� �����ϸ� ��� �� ��õ�
-        Debug.Log("��θ� ã�� ����. 0.5�� �� ��õ�.");
+
         Invoke(nameof(MoveToRandomPoint), 0.5f);
     }
 
@@ -282,11 +274,11 @@ public class SimpleAIController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, moveRadius);
 
         Gizmos.color = isChasing ? Color.red : Color.cyan;
-        
+
         Vector3 forward = transform.forward * viewDistance;
         Vector3 left = Quaternion.Euler(0, -viewAngle / 2f, 0) * forward;
         Vector3 right = Quaternion.Euler(0, viewAngle / 2f, 0) * forward;
-        
+
         Gizmos.DrawRay(transform.position, left);
         Gizmos.DrawRay(transform.position, right);
         Gizmos.DrawRay(transform.position, forward);
@@ -300,7 +292,7 @@ public class SimpleAIController : MonoBehaviour
             Gizmos.DrawLine(prev, point);
             prev = point;
         }
-        
+
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, catchDistance);
     }
