@@ -112,7 +112,7 @@ MonoBehaviour:
   explosionRadius: 3
   explosionDamageMultiplier: 1.5
   explosionForce: 500
-  explosionEffectPrefab: {fileID: 0}
+  explosionEffectPrefab: {fileID: 689556417934664719, guid: 06e2a2c7287cb4eb0a3e6bdb392cf1b8, type: 3}
   explosionSound: {fileID: 8300000, guid: 4c249b1667f004ad7865e10c6ea8d2b9, type: 3}
   explosionLayers:
     serializedVersion: 2

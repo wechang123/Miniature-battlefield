@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.AI;
 
 namespace YajaGame.Gameplay.Combat
 {
@@ -19,6 +20,11 @@ namespace YajaGame.Gameplay.Combat
         [SerializeField] private AudioClip hitSound;
         [SerializeField] private AudioClip deathSound;
 
+        [Header("Knockback Settings")]
+        [SerializeField] private float knockbackDuration = 1.0f; // 넉백 지속 시간
+        [SerializeField] private float knockbackStunTime = 1.0f; // 넉백 후 경직 시간
+        [SerializeField] private float knockbackDistanceMultiplier = 1.0f; // 넉백 거리 배율
+
         [Header("Death Settings")]
         [SerializeField] private float deathDelay = 2f; // 죽은 후 제거까지 시간
         [SerializeField] private GameObject deathEffectPrefab;
@@ -35,13 +41,22 @@ namespace YajaGame.Gameplay.Combat
 
         private Renderer[] _renderers;
         private Rigidbody _rigidbody;
+        private NavMeshAgent _navAgent;
+        private Animator _animator;
+        private MonoBehaviour _aiController; // SimpleAIController 등
         private bool _isDead = false;
+        private bool _isKnockedBack = false;
 
         private void Awake()
         {
             currentHealth = maxHealth;
             _renderers = GetComponentsInChildren<Renderer>();
             _rigidbody = GetComponent<Rigidbody>();
+            _navAgent = GetComponent<NavMeshAgent>();
+            _animator = GetComponent<Animator>();
+
+            // AI 컨트롤러 찾기 (SimpleAIController 등)
+            _aiController = GetComponent("SimpleAIController") as MonoBehaviour;
         }
 
         /// <summary>
@@ -143,10 +158,114 @@ namespace YajaGame.Gameplay.Combat
         /// </summary>
         private void ApplyKnockback(DamageInfo damageInfo)
         {
-            if (_rigidbody != null && damageInfo.KnockbackForce > 0)
+            if (damageInfo.KnockbackForce <= 0) return;
+            if (_isKnockedBack) return;
+
+            // NavMeshAgent가 있으면 잠시 비활성화
+            if (_navAgent != null && _navAgent.enabled)
             {
+                StartCoroutine(KnockbackCoroutine(damageInfo));
+            }
+            else if (_rigidbody != null)
+            {
+                // NavMeshAgent 없으면 바로 넉백
                 _rigidbody.AddForce(damageInfo.Direction * damageInfo.KnockbackForce, ForceMode.Impulse);
             }
+        }
+
+        /// <summary>
+        /// 넉백 코루틴 (NavMeshAgent 잠시 비활성화)
+        /// </summary>
+        private System.Collections.IEnumerator KnockbackCoroutine(DamageInfo damageInfo)
+        {
+            _isKnockedBack = true;
+
+            // AI 컨트롤러 비활성화 (애니메이션 덮어쓰기 방지)
+            if (_aiController != null)
+            {
+                _aiController.enabled = false;
+            }
+
+            // NavMeshAgent 비활성화
+            _navAgent.isStopped = true;
+            _navAgent.updatePosition = false;
+            _navAgent.updateRotation = false;
+
+            // 애니메이션 중지
+            if (_animator != null)
+            {
+                _animator.speed = 0f;
+            }
+
+            // 직접 위치 이동 (Rigidbody 대신 Transform 사용)
+            Vector3 knockbackDirection = damageInfo.Direction;
+            knockbackDirection.y = 0; // 수평으로만 밀림
+            knockbackDirection.Normalize();
+
+            float knockbackDistance = damageInfo.KnockbackForce * knockbackDistanceMultiplier; // 거리 계산
+            Vector3 targetPosition = transform.position + knockbackDirection * knockbackDistance;
+
+            Debug.Log($"[EnemyHealth] 넉백! 방향: {knockbackDirection}, 거리: {knockbackDistance}");
+
+            // 부드럽게 밀려남 (이동 중 충돌 체크)
+            float elapsed = 0f;
+            Vector3 startPos = transform.position;
+            float checkRadius = 0.4f; // 캐릭터 반경
+
+            while (elapsed < knockbackDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / knockbackDuration;
+                t = 1f - Mathf.Pow(1f - t, 3f); // Ease out cubic
+
+                Vector3 nextPos = Vector3.Lerp(startPos, targetPosition, t);
+                Vector3 moveDir = nextPos - transform.position;
+                float moveDist = moveDir.magnitude;
+
+                if (moveDist > 0.001f)
+                {
+                    // 이동 방향으로 장애물 체크 (자기 자신 제외)
+                    Vector3 origin = transform.position + Vector3.up * 0.5f;
+                    if (Physics.SphereCast(origin, checkRadius, moveDir.normalized, out RaycastHit hit, moveDist + 0.1f))
+                    {
+                        // 자기 자신이 아니면 멈춤
+                        if (hit.collider.gameObject != gameObject && !hit.collider.isTrigger)
+                        {
+                            Debug.Log($"[EnemyHealth] 넉백 중 장애물 감지: {hit.collider.name}");
+                            break;
+                        }
+                    }
+                    transform.position = nextPos;
+                }
+
+                yield return null;
+            }
+
+            // 경직 시간 대기
+            yield return new WaitForSeconds(knockbackStunTime);
+
+            // 애니메이션 재개
+            if (_animator != null)
+            {
+                _animator.speed = 1f;
+            }
+
+            // NavMeshAgent 다시 활성화
+            if (!_isDead && _navAgent != null)
+            {
+                _navAgent.Warp(transform.position); // 현재 위치로 NavMesh 동기화
+                _navAgent.updatePosition = true;
+                _navAgent.updateRotation = true;
+                _navAgent.isStopped = false;
+            }
+
+            // AI 컨트롤러 다시 활성화
+            if (!_isDead && _aiController != null)
+            {
+                _aiController.enabled = true;
+            }
+
+            _isKnockedBack = false;
         }
 
         /// <summary>

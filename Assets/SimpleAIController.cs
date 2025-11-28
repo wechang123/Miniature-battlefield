@@ -5,10 +5,10 @@ public class SimpleAIController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveRadius = 20f;
-    public float minWaitTime = 0f;        // ¡ç 0À¸·Î º¯°æ
-    public float maxWaitTime = 0.3f;      // ¡ç 0.3À¸·Î º¯°æ
+    public float minWaitTime = 0f;
+    public float maxWaitTime = 0.3f;
     public float moveSpeed = 2f;
-    public float stuckCheckTime = 3f;     // ¡ç Ãß°¡: ¸ØÃã °¨Áö ½Ã°£
+    public float stuckCheckTime = 3f;
 
     [Header("Vision Settings")]
     public float viewAngle = 60f;
@@ -25,14 +25,18 @@ public class SimpleAIController : MonoBehaviour
     public float walkAnimationSpeed = 2f;
     public float runAnimationSpeed = 5f;
 
+    [Header("Flashlight")]
+    public Light flashlight; // ì†ì „ë“± (Spot Light)
+    public float patrolLightIntensity = 1.5f;
+    public float chaseLightIntensity = 3f;
+
     private NavMeshAgent agent;
     private Transform player;
     private Animator animator;
     private bool isChasing = false;
     private float loseTimer = 0f;
     private float waitTimer = 0f;
-    
-    // ¡ç Ãß°¡: ¸ØÃã °¨Áö
+
     private Vector3 lastPosition;
     private float stuckTimer = 0f;
 
@@ -40,7 +44,7 @@ public class SimpleAIController : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        
+
         agent.speed = moveSpeed;
         agent.acceleration = 20f;
         agent.angularSpeed = 720f;
@@ -51,14 +55,62 @@ public class SimpleAIController : MonoBehaviour
         if (playerObject != null)
         {
             player = playerObject.transform;
+
+            // ì„ ìƒë‹˜ê³¼ í”Œë ˆì´ì–´ ë¬¼ë¦¬ ì¶©ëŒ ë¬´ì‹œ
+            Collider myCollider = GetComponent<Collider>();
+            Collider playerCollider = playerObject.GetComponent<Collider>();
+            if (myCollider != null && playerCollider != null)
+            {
+                Physics.IgnoreCollision(myCollider, playerCollider, true);
+            }
         }
 
-        lastPosition = transform.position;  // ¡ç Ãß°¡
+        // ItemHolderì—ì„œ ì†ì „ë“± ìë™ ì°¾ê¸°
+        if (flashlight == null)
+        {
+            ItemHolder itemHolder = GetComponent<ItemHolder>();
+            if (itemHolder != null)
+            {
+                // ì ì‹œ ëŒ€ê¸° í›„ ì†ì „ë“± ì°¾ê¸° (Instantiate í›„)
+                Invoke(nameof(FindFlashlightFromItemHolder), 0.1f);
+            }
+        }
+
+        lastPosition = transform.position;
         MoveToRandomPoint();
+    }
+
+    void FindFlashlightFromItemHolder()
+    {
+        ItemHolder itemHolder = GetComponent<ItemHolder>();
+        if (itemHolder != null)
+        {
+            GameObject item = itemHolder.GetCurrentItem();
+            if (item != null)
+            {
+                flashlight = item.GetComponentInChildren<Light>();
+                if (flashlight != null)
+                {
+                    flashlight.intensity = patrolLightIntensity;
+                    Debug.Log("[SimpleAIController] ItemHolderì—ì„œ ì†ì „ë“± ì°¾ìŒ!");
+                }
+            }
+        }
     }
 
     void Update()
     {
+        // í•­ìƒ ê±°ë¦¬ ì²´í¬ (ë„‰ë°± ì¤‘ì—ë„ ì¡ì„ ìˆ˜ ìˆë„ë¡)
+        if (player != null)
+        {
+            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+            if (distanceToPlayer <= catchDistance)
+            {
+                CatchPlayer();
+                return;
+            }
+        }
+
         bool seePlayer = CanSeePlayer();
 
         if (seePlayer)
@@ -67,34 +119,30 @@ public class SimpleAIController : MonoBehaviour
             {
                 isChasing = true;
                 agent.speed = chaseSpeed;
-                Debug.Log("ÇÃ·¹ÀÌ¾î ¹ß°ß!");
+                SetFlashlightChaseMode(true);
+                Debug.Log("í”Œë ˆì´ì–´ ë°œê²¬!");
             }
-            
+
             agent.SetDestination(player.position);
             loseTimer = 0f;
-            stuckTimer = 0f;  // ¡ç Ãß°¡: Å¸ÀÌ¸Ó ¸®¼Â
-            
-            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-            if (distanceToPlayer <= catchDistance)
-            {
-                CatchPlayer();
-            }
+            stuckTimer = 0f;
         }
         else if (isChasing)
         {
             loseTimer += Time.deltaTime;
-            
+
             if (loseTimer >= losePlayerTime)
             {
                 isChasing = false;
                 agent.speed = moveSpeed;
+                SetFlashlightChaseMode(false);
                 MoveToRandomPoint();
-                Debug.Log("ÃßÀû Á¾·á. ¼øÂû º¹±Í.");
+                Debug.Log("ì¶”ì  ì¢…ë£Œ. ìˆœì°° ì¬ê°œ.");
             }
         }
         else
         {
-            // ¸ñÀûÁö µµÂø È®ÀÎ
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È®ï¿½ï¿½
             if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
                 waitTimer -= Time.deltaTime;
@@ -105,36 +153,36 @@ public class SimpleAIController : MonoBehaviour
                 }
             }
             
-            // ¡ç Ãß°¡: ¸ØÃã °¨Áö (¼øÂû Áß¿¡¸¸)
+            // ï¿½ï¿½ ï¿½ß°ï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ß¿ï¿½ï¿½ï¿½)
             CheckIfStuck();
         }
 
         UpdateAnimation();
-        lastPosition = transform.position;  // ¡ç Ãß°¡: À§Ä¡ ¾÷µ¥ÀÌÆ®
+        lastPosition = transform.position;  // ï¿½ï¿½ ï¿½ß°ï¿½: ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®
     }
 
-    // ¡ç Ãß°¡: ¸ØÃã °¨Áö ÇÔ¼ö
+    // ï¿½ï¿½ ï¿½ß°ï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½
     void CheckIfStuck()
     {
         float moveDistance = Vector3.Distance(transform.position, lastPosition);
         
-        // °ÅÀÇ ¿òÁ÷ÀÌÁö ¾ÊÀ½
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         if (moveDistance < 0.01f && agent.hasPath)
         {
             stuckTimer += Time.deltaTime;
             
-            // ÀÏÁ¤ ½Ã°£ ÀÌ»ó ¸ØÃçÀÖÀ¸¸é »õ ¸ñÀûÁö
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             if (stuckTimer >= stuckCheckTime)
             {
-                Debug.Log("NPC°¡ ¸ØÃçÀÖÀ½. »õ ¸ñÀûÁö·Î ÀÌµ¿.");
-                agent.ResetPath();  // °æ·Î ¸®¼Â
+                Debug.Log("NPCï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½. ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½.");
+                agent.ResetPath();  // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 MoveToRandomPoint();
                 stuckTimer = 0f;
             }
         }
         else
         {
-            stuckTimer = 0f;  // ¿òÁ÷ÀÌ°í ÀÖÀ¸¸é Å¸ÀÌ¸Ó ¸®¼Â
+            stuckTimer = 0f;  // ï¿½ï¿½ï¿½ï¿½ï¿½Ì°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½ï¿½
         }
     }
 
@@ -167,7 +215,7 @@ public class SimpleAIController : MonoBehaviour
 
     void CatchPlayer()
     {
-        Debug.Log("ÇÃ·¹ÀÌ¾î¸¦ Àâ¾Ò½À´Ï´Ù!");
+        Debug.Log("ï¿½Ã·ï¿½ï¿½Ì¾î¸¦ ï¿½ï¿½Ò½ï¿½ï¿½Ï´ï¿½!");
         
         if (GameManager.Instance != null)
         {
@@ -180,28 +228,28 @@ public class SimpleAIController : MonoBehaviour
 
     void MoveToRandomPoint()
     {
-        // ¡ç ¼öÁ¤: ´õ °£´ÜÇÏ°í ¾ÈÁ¤ÀûÀÎ ·£´ı ÀÌµ¿
-        for (int i = 0; i < 10; i++)  // ÃÖ´ë 10¹ø ½Ãµµ
+        // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½
+        for (int i = 0; i < 10; i++)  // ï¿½Ö´ï¿½ 10ï¿½ï¿½ ï¿½Ãµï¿½
         {
             Vector2 randomCircle = Random.insideUnitCircle * moveRadius;
             Vector3 randomPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
 
             if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, moveRadius, NavMesh.AllAreas))
             {
-                // °æ·Î °è»ê °¡´ÉÇÑÁö È®ÀÎ
+                // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È®ï¿½ï¿½
                 NavMeshPath path = new NavMeshPath();
                 if (agent.CalculatePath(hit.position, path) && path.status == NavMeshPathStatus.PathComplete)
                 {
                     agent.SetDestination(hit.position);
                     waitTimer = Random.Range(minWaitTime, maxWaitTime);
-                    stuckTimer = 0f;  // ¡ç Ãß°¡: Å¸ÀÌ¸Ó ¸®¼Â
+                    stuckTimer = 0f;  // ï¿½ï¿½ ï¿½ß°ï¿½: Å¸ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½ï¿½
                     return;
                 }
             }
         }
         
-        // 10¹ø ½ÇÆĞÇÏ¸é Àá½Ã ÈÄ Àç½Ãµµ
-        Debug.Log("°æ·Î¸¦ Ã£Áö ¸øÇÔ. 0.5ÃÊ ÈÄ Àç½Ãµµ.");
+        // 10ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ãµï¿½
+        Debug.Log("ï¿½ï¿½Î¸ï¿½ Ã£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½. 0.5ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ãµï¿½.");
         Invoke(nameof(MoveToRandomPoint), 0.5f);
     }
 
@@ -255,5 +303,24 @@ public class SimpleAIController : MonoBehaviour
         
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, catchDistance);
+    }
+
+    /// <summary>
+    /// ì†ì „ë“± ëª¨ë“œ ì„¤ì •
+    /// </summary>
+    void SetFlashlightChaseMode(bool chasing)
+    {
+        if (flashlight == null) return;
+
+        if (chasing)
+        {
+            flashlight.intensity = chaseLightIntensity;
+            flashlight.color = new Color(1f, 0.9f, 0.9f); // ì•½ê°„ ë¶‰ì€ìƒ‰
+        }
+        else
+        {
+            flashlight.intensity = patrolLightIntensity;
+            flashlight.color = new Color(1f, 0.95f, 0.8f); // ë”°ëœ»í•œ ìƒ‰
+        }
     }
 }

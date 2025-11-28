@@ -27,6 +27,10 @@ namespace YajaGame.Gameplay.Weapons.Melee
         [SerializeField] protected AudioClip hitSound; // 타격 사운드
         [SerializeField] protected float soundVolume = 1f; // 사운드 볼륨
 
+        [Header("Visual Effects")]
+        [SerializeField] protected GameObject slashEffectPrefab; // 슬래시 이펙트 프리팹
+        [SerializeField] protected Vector3 slashEffectOffset = new Vector3(0, 0, 1f); // 이펙트 위치 오프셋
+
         [Header("Events")]
         public UnityEvent OnAttackStarted = new UnityEvent();
         public UnityEvent OnAttackEnded = new UnityEvent();
@@ -103,6 +107,9 @@ namespace YajaGame.Gameplay.Weapons.Melee
                 AudioSource.PlayClipAtPoint(attackSound, transform.position, soundVolume);
             }
 
+            // 슬래시 이펙트 생성
+            SpawnSlashEffect();
+
             // 즉시 히트박스 활성화 (클릭하자마자 공격)
             ActivateHitbox();
             Invoke(nameof(DeactivateHitbox), 0.2f); // 0.2초 후 비활성화
@@ -117,6 +124,30 @@ namespace YajaGame.Gameplay.Weapons.Melee
             }
 
             OnAttackStarted?.Invoke();
+        }
+
+        /// <summary>
+        /// 슬래시 이펙트 생성
+        /// </summary>
+        protected virtual void SpawnSlashEffect()
+        {
+            if (slashEffectPrefab == null)
+            {
+                Debug.LogWarning("[MeleeWeapon] slashEffectPrefab이 설정되지 않았습니다!");
+                return;
+            }
+
+            // 플레이어 위치 기준으로 이펙트 생성
+            Transform playerTransform = animator != null ? animator.transform : transform;
+            Vector3 effectPos = playerTransform.position + playerTransform.TransformDirection(slashEffectOffset);
+            effectPos.y += 1f; // 플레이어 높이 보정
+            Quaternion effectRot = playerTransform.rotation;
+
+            GameObject effect = Instantiate(slashEffectPrefab, effectPos, effectRot);
+            Debug.Log($"[MeleeWeapon] 슬래시 이펙트 생성! 위치: {effectPos}");
+
+            // 자동 삭제
+            Destroy(effect, 1f);
         }
 
         /// <summary>

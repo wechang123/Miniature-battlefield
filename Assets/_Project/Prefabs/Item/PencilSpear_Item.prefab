@@ -68,7 +68,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
   debugMode: 1
 --- !u!1 &8655287226463365336
 GameObject:
@@ -262,6 +262,8 @@ MonoBehaviour:
   attackSound: {fileID: 8300000, guid: c6f09fda53f29414aaf22fbd5b16fe0e, type: 3}
   hitSound: {fileID: 8300000, guid: c6f09fda53f29414aaf22fbd5b16fe0e, type: 3}
   soundVolume: 1
+  slashEffectPrefab: {fileID: 689556417934664719, guid: 06e2a2c7287cb4eb0a3e6bdb392cf1b8, type: 3}
+  slashEffectOffset: {x: 0, y: 0, z: 1}
   OnAttackStarted:
     m_PersistentCalls:
       m_Calls: []
