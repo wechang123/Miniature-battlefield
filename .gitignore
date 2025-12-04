@@ -53,3 +53,9 @@ crashlytics-build.properties
 .vscode/
 *.zip
 mono_crash.*.json
+.serena/
+.claude/
+.mcp.json
+*_SETUP.md
+*_GUIDE.md
+*_CHECKLIST.md

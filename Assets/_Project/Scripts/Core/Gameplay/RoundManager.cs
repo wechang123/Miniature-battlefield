@@ -67,16 +67,20 @@ namespace YajaGame.Gameplay
         public UnityEvent OnRoundStart = new UnityEvent();
         public UnityEvent OnRoundClear = new UnityEvent();
         public UnityEvent<int> OnEnemyCountChanged = new UnityEvent<int>();
+        public UnityEvent<int> OnDroneCountChanged = new UnityEvent<int>();
 
         // 상태 변수
         private RoundState _state = RoundState.Waiting;
         private int _remainingEnemies = 0;
+        private int _remainingDrones = 0;
         private List<GameObject> _spawnedEnemies = new List<GameObject>();
+        private List<GameObject> _spawnedDrones = new List<GameObject>();
 
         // 프로퍼티
         public RoundState State => _state;
         public int CurrentRound => currentRound;
         public int RemainingEnemies => _remainingEnemies;
+        public int RemainingDrones => _remainingDrones;
 
         private void Awake()
         {
@@ -173,51 +177,94 @@ namespace YajaGame.Gameplay
         private void SpawnEnemies()
         {
             _spawnedEnemies.Clear();
+            _spawnedDrones.Clear();
             _remainingEnemies = 0;
+            _remainingDrones = 0;
 
-            int spawnIndex = 0;
+            // 먼저 씬에 이미 있는 적들 등록
+            RegisterExistingEnemies();
 
-            // 선생님 스폰
-            for (int i = 0; i < teacherCount; i++)
+            // 프리팹이 설정되어 있으면 추가 스폰
+            if (teacherPrefab != null || dronePrefab != null)
             {
-                if (teacherPrefab != null && spawnIndex < spawnPoints.Length)
+                int spawnIndex = 0;
+
+                // 선생님 스폰
+                for (int i = 0; i < teacherCount; i++)
                 {
-                    GameObject teacher = Instantiate(teacherPrefab, spawnPoints[spawnIndex].position, spawnPoints[spawnIndex].rotation);
-                    RegisterEnemy(teacher);
-                    spawnIndex++;
-                    Debug.Log($"[RoundManager] 선생님 스폰: {spawnPoints[spawnIndex - 1].position}");
+                    if (teacherPrefab != null && spawnIndex < spawnPoints.Length)
+                    {
+                        GameObject teacher = Instantiate(teacherPrefab, spawnPoints[spawnIndex].position, spawnPoints[spawnIndex].rotation);
+                        RegisterEnemy(teacher);
+                        spawnIndex++;
+                        Debug.Log($"[RoundManager] 선생님 스폰: {spawnPoints[spawnIndex - 1].position}");
+                    }
+                }
+
+                // 드론 스폰
+                for (int i = 0; i < droneCount; i++)
+                {
+                    if (dronePrefab != null && spawnIndex < spawnPoints.Length)
+                    {
+                        GameObject drone = Instantiate(dronePrefab, spawnPoints[spawnIndex].position, spawnPoints[spawnIndex].rotation);
+                        RegisterEnemy(drone, isDrone: true);  // 드론으로 등록
+                        spawnIndex++;
+                        Debug.Log($"[RoundManager] 드론 스폰: {spawnPoints[spawnIndex - 1].position}");
+                    }
                 }
             }
 
-            // 드론 스폰
-            for (int i = 0; i < droneCount; i++)
-            {
-                if (dronePrefab != null && spawnIndex < spawnPoints.Length)
-                {
-                    GameObject drone = Instantiate(dronePrefab, spawnPoints[spawnIndex].position, spawnPoints[spawnIndex].rotation);
-                    RegisterEnemy(drone);
-                    spawnIndex++;
-                    Debug.Log($"[RoundManager] 드론 스폰: {spawnPoints[spawnIndex - 1].position}");
-                }
-            }
+            Debug.Log($"[RoundManager] 총 {_remainingEnemies}명의 적 스폰/등록 완료 (드론: {_remainingDrones})");
 
-            Debug.Log($"[RoundManager] 총 {_remainingEnemies}명의 적 스폰 완료");
+            // UI 업데이트 (초기 적 수 표시)
+            OnEnemyCountChanged?.Invoke(_remainingEnemies);
+            OnDroneCountChanged?.Invoke(_remainingDrones);
         }
 
         /// <summary>
-        /// 적 등록 (EnemyHealth의 OnDeath 이벤트에 연결)
+        /// 씬에 이미 있는 적들 등록
         /// </summary>
-        private void RegisterEnemy(GameObject enemy)
+        private void RegisterExistingEnemies()
+        {
+            // SimpleAIController (선생님) 찾기
+            SimpleAIController[] teachers = FindObjectsOfType<SimpleAIController>();
+            foreach (var teacher in teachers)
+            {
+                RegisterEnemy(teacher.gameObject, isDrone: false);
+                Debug.Log($"[RoundManager] 기존 선생님 등록: {teacher.name}");
+            }
+
+            // DroneAIController (드론) 찾기
+            DroneAIController[] drones = FindObjectsOfType<DroneAIController>();
+            foreach (var drone in drones)
+            {
+                RegisterEnemy(drone.gameObject, isDrone: true);
+                Debug.Log($"[RoundManager] 기존 드론 등록: {drone.name}");
+            }
+        }
+
+        /// <summary>
+        /// 적 등록
+        /// </summary>
+        private void RegisterEnemy(GameObject enemy, bool isDrone = false)
         {
             _spawnedEnemies.Add(enemy);
             _remainingEnemies++;
 
-            // EnemyHealth 컴포넌트에서 OnDeath 이벤트 연결
-            EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
-            if (enemyHealth != null)
+            // 드론인 경우 별도 리스트에도 추가
+            if (isDrone)
             {
-                enemyHealth.OnDeath.AddListener(() => OnEnemyDeath(enemy));
+                _spawnedDrones.Add(enemy);
+                _remainingDrones++;
+                Debug.Log($"[RoundManager] 드론 등록: {enemy.name}, 총 드론: {_remainingDrones}");
             }
+            else
+            {
+                Debug.Log($"[RoundManager] 적 등록: {enemy.name}, 총 {_remainingEnemies}명 (드론 외)");
+            }
+
+            // 참고: 적 사망 시 DroneAIController.Die() 또는 SimpleAIController.Die()에서
+            // 직접 RoundManager.Instance.OnEnemyDeath() 호출함
         }
 
         /// <summary>
@@ -227,12 +274,31 @@ namespace YajaGame.Gameplay
         {
             if (_state != RoundState.InProgress) return;
 
+            // 중복 호출 방지: 이미 제거된 적이면 무시
+            if (enemy != null && !_spawnedEnemies.Contains(enemy))
+            {
+                Debug.Log($"[RoundManager] 이미 처리된 적: {enemy.name}");
+                return;
+            }
+
             _remainingEnemies--;
             _remainingEnemies = Mathf.Max(0, _remainingEnemies);
 
+            // 드론인 경우 드론 카운트도 감소
+            bool wasDrone = false;
             if (enemy != null)
             {
                 _spawnedEnemies.Remove(enemy);
+
+                // 드론 리스트에서도 제거
+                if (_spawnedDrones.Contains(enemy))
+                {
+                    _spawnedDrones.Remove(enemy);
+                    _remainingDrones--;
+                    _remainingDrones = Mathf.Max(0, _remainingDrones);
+                    wasDrone = true;
+                    Debug.Log($"[RoundManager] 드론 처치! 남은 드론: {_remainingDrones}");
+                }
             }
 
             Debug.Log($"[RoundManager] 적 처치! 남은 적: {_remainingEnemies}");
@@ -248,6 +314,12 @@ namespace YajaGame.Gameplay
 
             // 이벤트 발생
             OnEnemyCountChanged?.Invoke(_remainingEnemies);
+
+            // 드론 카운트 변경 이벤트 (드론이 죽었을 때만)
+            if (wasDrone)
+            {
+                OnDroneCountChanged?.Invoke(_remainingDrones);
+            }
 
             // 라운드 클리어 체크
             CheckRoundClear();

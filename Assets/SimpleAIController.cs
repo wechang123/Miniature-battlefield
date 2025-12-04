@@ -269,7 +269,7 @@ public class SimpleAIController : MonoBehaviour
         if (isDead) return;
 
         isDead = true;
-        Debug.Log($"{gameObject.name} 사망!");
+        Debug.Log($"[선생님] {gameObject.name} 사망!");
 
         agent.isStopped = true;
         agent.enabled = false;
@@ -283,6 +283,12 @@ public class SimpleAIController : MonoBehaviour
         if (deathEffect != null)
         {
             Instantiate(deathEffect, transform.position + Vector3.up, Quaternion.identity);
+        }
+
+        // RoundManager에 알림
+        if (YajaGame.Gameplay.RoundManager.Instance != null)
+        {
+            YajaGame.Gameplay.RoundManager.Instance.OnEnemyDeath(gameObject);
         }
 
         Collider col = GetComponent<Collider>();

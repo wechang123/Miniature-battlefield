@@ -1,7 +1,8 @@
 using UnityEngine;
 using System.Collections;
+using YajaGame.Gameplay.Combat;
 
-public class DroneAIController : MonoBehaviour
+public class DroneAIController : MonoBehaviour, IDamageable
 {
     [Header("Movement Settings")]
     public float moveSpeed = 3f;
@@ -62,6 +63,12 @@ public class DroneAIController : MonoBehaviour
     private float stuckTimer = 0f;
     private Vector3 lastPosition;
     private bool isDead = false;
+
+    // IDamageable 인터페이스 구현
+    public float CurrentHealth => currentHealth;
+    public float MaxHealth => maxHealth;
+    public bool IsAlive => !isDead;
+    public Transform Transform => transform;
 
     void Start()
     {
@@ -206,12 +213,18 @@ public class DroneAIController : MonoBehaviour
         }
     }
 
+    public void TakeDamage(DamageInfo damageInfo)
+    {
+        Debug.Log($"[드론] DamageInfo로 피격! 데미지: {damageInfo.Amount}");
+        TakeDamage(damageInfo.Amount);
+    }
+
     public void TakeDamage(float damage)
     {
         if (isDead) return;
 
         currentHealth -= damage;
-        Debug.Log($"��� �ǰ�! ü��: {currentHealth}");
+        Debug.Log($"[드론] 피격! 데미지: {damage}, 남은 체력: {currentHealth}/{maxHealth}");
 
         StartCoroutine(HitColorChange());
 
@@ -235,12 +248,18 @@ public class DroneAIController : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        
-        Debug.Log("? ��� �ı�!");
+
+        Debug.Log("[드론] 파괴됨!");
 
         if (explosionEffect != null)
         {
             Instantiate(explosionEffect, transform.position, Quaternion.identity);
+        }
+
+        // RoundManager에 알림
+        if (YajaGame.Gameplay.RoundManager.Instance != null)
+        {
+            YajaGame.Gameplay.RoundManager.Instance.OnEnemyDeath(gameObject);
         }
 
         DropPropellers();

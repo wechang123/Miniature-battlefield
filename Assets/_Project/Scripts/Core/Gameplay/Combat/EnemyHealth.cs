@@ -303,6 +303,12 @@ namespace YajaGame.Gameplay.Combat
             // 이벤트 발생
             OnDeath?.Invoke();
 
+            // RoundManager에 알림
+            if (YajaGame.Gameplay.RoundManager.Instance != null)
+            {
+                YajaGame.Gameplay.RoundManager.Instance.OnEnemyDeath(gameObject);
+            }
+
             // AI 비활성화 (있다면)
             var ai = GetComponent<MonoBehaviour>();
             if (ai != null)

@@ -87,10 +87,17 @@ public class GameManager : MonoBehaviour
             isCameraLocked = true;
         }
 
-        // UI ǥ��
+        // UI 표시 (기존)
         if (gameOverText != null)
         {
             gameOverText.SetActive(true);
+        }
+
+        // RoundUI 게임오버 표시 (이온님 UI)
+        YajaGame.UI.RoundUI roundUI = FindObjectOfType<YajaGame.UI.RoundUI>();
+        if (roundUI != null)
+        {
+            roundUI.ShowGameOver();
         }
 
         // 3�� �� �����

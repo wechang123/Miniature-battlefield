@@ -42,6 +42,8 @@ namespace YajaGame.UI
         [SerializeField] private Image droneIconImage;  // drone-count/드론 아이콘.png
         [SerializeField] private TextMeshProUGUI enemyCountText;
         [SerializeField] private Image[] droneCountImages;  // drone-count/드론-N.png (0~10)
+        [SerializeField] private Image enemyCountImage;  // 단일 이미지 (간단 버전)
+        [SerializeField] private Sprite[] enemyCountSprites;  // 드론-0 ~ 드론-10 스프라이트 배열
 
         [Header("Warning UI")]
         [SerializeField] private GameObject warningPanel;
@@ -90,11 +92,30 @@ namespace YajaGame.UI
             {
                 RoundManager.Instance.OnRoundStart.AddListener(OnRoundStart);
                 RoundManager.Instance.OnRoundClear.AddListener(OnRoundClear);
-                RoundManager.Instance.OnEnemyCountChanged.AddListener(UpdateEnemyCount);
-            }
+                RoundManager.Instance.OnDroneCountChanged.AddListener(UpdateDroneCount);  // 드론만 카운트
+                Debug.Log("[RoundUI] RoundManager 이벤트 연결 완료!");
 
-            // GameManager 이벤트 연결 (게임오버용)
-            // GameManager에 이벤트가 없으므로 별도 처리 필요
+                // 초기 드론 수 표시
+                UpdateDroneCount(RoundManager.Instance.RemainingDrones);
+            }
+            else
+            {
+                Debug.LogWarning("[RoundUI] RoundManager.Instance가 null입니다!");
+                StartCoroutine(DelayedInit());
+            }
+        }
+
+        private IEnumerator DelayedInit()
+        {
+            yield return new WaitForSeconds(0.5f);
+            if (RoundManager.Instance != null)
+            {
+                RoundManager.Instance.OnRoundStart.AddListener(OnRoundStart);
+                RoundManager.Instance.OnRoundClear.AddListener(OnRoundClear);
+                RoundManager.Instance.OnDroneCountChanged.AddListener(UpdateDroneCount);
+                UpdateDroneCount(RoundManager.Instance.RemainingDrones);
+                Debug.Log("[RoundUI] 지연 초기화 완료!");
+            }
         }
 
         private void OnDestroy()
@@ -104,7 +125,7 @@ namespace YajaGame.UI
             {
                 RoundManager.Instance.OnRoundStart.RemoveListener(OnRoundStart);
                 RoundManager.Instance.OnRoundClear.RemoveListener(OnRoundClear);
-                RoundManager.Instance.OnEnemyCountChanged.RemoveListener(UpdateEnemyCount);
+                RoundManager.Instance.OnDroneCountChanged.RemoveListener(UpdateDroneCount);
             }
         }
 
@@ -212,17 +233,35 @@ namespace YajaGame.UI
         }
 
         /// <summary>
-        /// 남은 적 수 업데이트
+        /// 남은 드론 수 업데이트
         /// </summary>
-        private void UpdateEnemyCount(int count)
+        private void UpdateDroneCount(int count)
         {
+            Debug.Log($"[RoundUI] UpdateDroneCount 호출: {count}");
+
             // 텍스트로 표시
             if (enemyCountText != null)
             {
                 enemyCountText.text = count.ToString();
             }
 
-            // 이미지로 표시 (드론 카운트 이미지 사용)
+            // 단일 이미지 + 스프라이트 배열 방식 (간단 버전)
+            if (enemyCountImage != null && enemyCountSprites != null && enemyCountSprites.Length > 0)
+            {
+                int index = Mathf.Clamp(count, 0, enemyCountSprites.Length - 1);
+                Debug.Log($"[RoundUI] 스프라이트 변경: index={index}, 배열크기={enemyCountSprites.Length}");
+                if (enemyCountSprites[index] != null)
+                {
+                    enemyCountImage.sprite = enemyCountSprites[index];
+                    Debug.Log($"[RoundUI] 스프라이트 적용: {enemyCountSprites[index].name}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[RoundUI] enemyCountImage={enemyCountImage != null}, sprites={enemyCountSprites?.Length ?? 0}");
+            }
+
+            // 이미지로 표시 (드론 카운트 이미지 사용) - 기존 방식
             if (droneCountImages != null && droneCountImages.Length > 0)
             {
                 for (int i = 0; i < droneCountImages.Length; i++)

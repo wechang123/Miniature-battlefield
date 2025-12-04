@@ -59,6 +59,22 @@ namespace YajaGame.Gameplay.Combat
         }
 
         /// <summary>
+        /// 데미지를 받습니다 (float 오버로드 - SendMessage 호환용)
+        /// </summary>
+        public void TakeDamage(float damage)
+        {
+            TakeDamage(new DamageInfo
+            {
+                Amount = damage,
+                Type = DamageType.Physical,
+                Direction = Vector3.zero,
+                HitPoint = transform.position,
+                Source = null,
+                KnockbackForce = 0f
+            });
+        }
+
+        /// <summary>
         /// 데미지를 받습니다
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
