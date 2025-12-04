@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class DroneAIController : MonoBehaviour
 {
@@ -7,8 +8,8 @@ public class DroneAIController : MonoBehaviour
     public float flyHeight = 3f;
     public float patrolRadius = 20f;
     public Vector3 centerPosition;
-    public float obstacleAvoidDistance = 3f;  // ¡ç Ãß°¡
-    public LayerMask obstacleLayer;  // ¡ç Ãß°¡
+    public float obstacleAvoidDistance = 3f;
+    public LayerMask obstacleLayer;
 
     [Header("Boundaries")]
     public float maxX = 25f;
@@ -24,28 +25,49 @@ public class DroneAIController : MonoBehaviour
     public float chaseSpeed = 6f;
     public float losePlayerTime = 3f;
 
+    [Header("Attack Settings")]
+    public float attackRange = 10f;
+    public float attackDamage = 10f;
+    public float attackCooldown = 2f;
+    public GameObject projectilePrefab;
+    public Transform projectileSpawnPoint;
+    public float projectileSpeed = 15f;
+    private float lastAttackTime = 0f;
+
     [Header("Visual Effects")]
     public Transform[] propellers;
     public float propellerIdleSpeed = 1000f;
     public float propellerChaseSpeed = 2000f;
     public Light droneLight;
-    public float lightIdleIntensity = 2f;  // ¡ç 2·Î Áõ°¡
-    public float lightChaseIntensity = 5f;  // ¡ç 5·Î Áõ°¡
+    public float lightIdleIntensity = 2f;
+    public float lightChaseIntensity = 5f;
     public Color lightIdleColor = Color.white;
     public Color lightChaseColor = Color.red;
+
+    [Header("Renderer")]
+    public Renderer bodyRenderer;
+    public Color normalColor = Color.white;
+    public Color hitColor = Color.yellow;
+
+    [Header("Health System")]
+    public float maxHealth = 100f;
+    public float currentHealth;
+    public GameObject explosionEffect;
 
     private Transform player;
     private bool isChasing = false;
     private float loseTimer = 0f;
     private Vector3 patrolTarget;
     private float currentPropellerSpeed;
-    private float stuckTimer = 0f;  // ¡ç Ãß°¡
-    private Vector3 lastPosition;  // ¡ç Ãß°¡
+    private float stuckTimer = 0f;
+    private Vector3 lastPosition;
+    private bool isDead = false;
 
     void Start()
     {
-        Debug.Log("??? µå·Ð AI ½ÃÀÛ! ???");
+        Debug.Log("? ï¿½ï¿½ï¿½ AI ï¿½ï¿½ï¿½ï¿½!");
         
+        currentHealth = maxHealth;
         centerPosition = transform.position;
         lastPosition = transform.position;
 
@@ -53,11 +75,11 @@ public class DroneAIController : MonoBehaviour
         if (playerObject != null)
         {
             player = playerObject.transform;
-            Debug.Log($"? ÇÃ·¹ÀÌ¾î Ã£À½: {player.name}");
+            Debug.Log($"? ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ Ã£ï¿½ï¿½: {player.name}");
         }
         else
         {
-            Debug.LogError("? ÇÃ·¹ÀÌ¾î¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù! Tag 'Player' È®ÀÎ!");
+            Debug.LogError("? ï¿½Ã·ï¿½ï¿½Ì¾î¸¦ Ã£ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½! Tag 'Player' È®ï¿½ï¿½!");
         }
 
         if (droneLight == null)
@@ -70,18 +92,17 @@ public class DroneAIController : MonoBehaviour
             droneLight.enabled = true;
             droneLight.intensity = lightIdleIntensity;
             droneLight.color = lightIdleColor;
-            droneLight.range = 40f;  // ¡ç Ãß°¡: ¹üÀ§ Áõ°¡
-            Debug.Log($"? Á¶¸í ÃÊ±âÈ­! Intensity: {droneLight.intensity}, Range: {droneLight.range}");
-        }
-        else
-        {
-            Debug.LogWarning("?? Á¶¸íÀÌ ¾ø½À´Ï´Ù!");
+            droneLight.range = 40f;
         }
 
-        Debug.Log($"ÇÁ·ÎÆç·¯ °³¼ö: {propellers.Length}");
-        if (propellers.Length == 0)
+        if (bodyRenderer == null)
         {
-            Debug.LogWarning("?????? ÇÁ·ÎÆç·¯°¡ ÇÒ´çµÇÁö ¾Ê¾Ò½À´Ï´Ù! Inspector¿¡¼­ ÇÒ´çÇÏ¼¼¿ä!");
+            bodyRenderer = GetComponentInChildren<MeshRenderer>();
+        }
+        
+        if (bodyRenderer != null)
+        {
+            normalColor = bodyRenderer.material.color;
         }
 
         currentPropellerSpeed = propellerIdleSpeed;
@@ -90,16 +111,12 @@ public class DroneAIController : MonoBehaviour
 
     void Update()
     {
-        if (player == null)
-        {
-            Debug.LogWarning("ÇÃ·¹ÀÌ¾î°¡ null!");
-            return;
-        }
+        if (isDead) return;
+        if (player == null) return;
 
         bool seePlayer = CanSeePlayer();
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // ¡ç Ãß°¡: ¸ØÃã °¨Áö
         CheckIfStuck();
 
         if (seePlayer)
@@ -107,26 +124,27 @@ public class DroneAIController : MonoBehaviour
             if (!isChasing)
             {
                 isChasing = true;
-                Debug.Log("??? ÇÃ·¹ÀÌ¾î ¹ß°ß! Ãß°Ý ½ÃÀÛ! ???");
+                Debug.Log("? ï¿½ï¿½ï¿½: ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ß°ï¿½!");
             }
 
             Vector3 targetPos = player.position + Vector3.up * flyHeight;
             targetPos = ClampToBoundaries(targetPos);
-            
-            // ¡ç ¼öÁ¤: Àå¾Ö¹° È¸ÇÇÇÏ¸ç ÀÌµ¿
             MoveWithObstacleAvoidance(targetPos, chaseSpeed);
+
+            if (distanceToPlayer <= attackRange)
+            {
+                AttackPlayer();
+            }
 
             loseTimer = 0f;
         }
         else if (isChasing)
         {
             loseTimer += Time.deltaTime;
-
             if (loseTimer >= losePlayerTime)
             {
                 isChasing = false;
                 SetNewPatrolTarget();
-                Debug.Log("µå·Ð: ¼øÂû º¹±Í");
             }
         }
         else
@@ -135,36 +153,124 @@ public class DroneAIController : MonoBehaviour
             {
                 SetNewPatrolTarget();
             }
-            // ¡ç ¼öÁ¤: Àå¾Ö¹° È¸ÇÇÇÏ¸ç ÀÌµ¿
             MoveWithObstacleAvoidance(patrolTarget, moveSpeed);
         }
 
         KeepInBounds();
         RotateDrone();
         UpdateVisualEffects();
-        
         lastPosition = transform.position;
     }
 
-    // ¡ç Ãß°¡: Àå¾Ö¹° È¸ÇÇ ÀÌµ¿
+    void AttackPlayer()
+    {
+        if (Time.time < lastAttackTime + attackCooldown) return;
+        lastAttackTime = Time.time;
+        
+        Debug.Log("ï¿½ï¿½ï¿½ ï¿½ß»ï¿½!");
+        
+        Vector3 spawnPos = projectileSpawnPoint != null ? projectileSpawnPoint.position : transform.position;
+        Vector3 direction = (player.position - spawnPos).normalized;
+        
+        if (projectilePrefab != null)
+        {
+            GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(direction));
+            
+            Rigidbody rb = projectile.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.linearVelocity = direction * projectileSpeed;
+            }
+        }
+        
+        StartCoroutine(AttackFlash());
+    }
+
+    IEnumerator AttackFlash()
+    {
+        if (droneLight != null)
+        {
+            Color originalColor = droneLight.color;
+            float originalIntensity = droneLight.intensity;
+            
+            for (int i = 0; i < 2; i++)
+            {
+                droneLight.color = Color.red;
+                droneLight.intensity = 8f;
+                yield return new WaitForSeconds(0.1f);
+                
+                droneLight.color = originalColor;
+                droneLight.intensity = originalIntensity;
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (isDead) return;
+
+        currentHealth -= damage;
+        Debug.Log($"ï¿½ï¿½ï¿½ ï¿½Ç°ï¿½! Ã¼ï¿½ï¿½: {currentHealth}");
+
+        StartCoroutine(HitColorChange());
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    IEnumerator HitColorChange()
+    {
+        if (bodyRenderer != null)
+        {
+            bodyRenderer.material.color = hitColor;
+            yield return new WaitForSeconds(0.2f);
+            bodyRenderer.material.color = normalColor;
+        }
+    }
+
+    void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+        
+        Debug.Log("? ï¿½ï¿½ï¿½ ï¿½Ä±ï¿½!");
+
+        if (explosionEffect != null)
+        {
+            Instantiate(explosionEffect, transform.position, Quaternion.identity);
+        }
+
+        DropPropellers();
+        Destroy(gameObject, 0.5f);
+    }
+
+    void DropPropellers()
+    {
+        foreach (Transform propeller in propellers)
+        {
+            if (propeller != null)
+            {
+                propeller.SetParent(null);
+                Rigidbody rb = propeller.gameObject.AddComponent<Rigidbody>();
+                rb.AddForce(Random.insideUnitSphere * 5f, ForceMode.Impulse);
+                Destroy(propeller.gameObject, 5f);
+            }
+        }
+    }
+
     void MoveWithObstacleAvoidance(Vector3 target, float speed)
     {
         Vector3 direction = (target - transform.position).normalized;
         
-        // Àü¹æ Àå¾Ö¹° Ã¼Å©
         if (Physics.Raycast(transform.position, direction, out RaycastHit hit, obstacleAvoidDistance))
         {
             if (!hit.collider.CompareTag("Player"))
             {
-                Debug.Log($"? Àå¾Ö¹° °¨Áö: {hit.collider.name}");
-                
-                // Àå¾Ö¹° È¸ÇÇ ¹æÇâ °è»ê
                 Vector3 avoidDir = Vector3.Cross(direction, Vector3.up);
-                
-                // ·£´ýÀ¸·Î ÁÂ¿ì ¼±ÅÃ
-                if (Random.value > 0.5f)
-                    avoidDir = -avoidDir;
-                
+                if (Random.value > 0.5f) avoidDir = -avoidDir;
                 direction = (direction + avoidDir).normalized;
             }
         }
@@ -172,7 +278,6 @@ public class DroneAIController : MonoBehaviour
         transform.position += direction * speed * Time.deltaTime;
     }
 
-    // ¡ç Ãß°¡: ¸ØÃã °¨Áö
     void CheckIfStuck()
     {
         float moveDistance = Vector3.Distance(transform.position, lastPosition);
@@ -180,10 +285,8 @@ public class DroneAIController : MonoBehaviour
         if (moveDistance < 0.1f)
         {
             stuckTimer += Time.deltaTime;
-            
             if (stuckTimer > 2f)
             {
-                Debug.Log("? µå·ÐÀÌ ¸ØÃçÀÖÀ½! »õ ¸ñÇ¥ ¼³Á¤");
                 SetNewPatrolTarget();
                 stuckTimer = 0f;
             }
@@ -194,34 +297,23 @@ public class DroneAIController : MonoBehaviour
         }
     }
 
-    void MoveTowards(Vector3 target, float speed)
-    {
-        Vector3 direction = (target - transform.position).normalized;
-        transform.position += direction * speed * Time.deltaTime;
-    }
-
     void SetNewPatrolTarget()
     {
-        // ¡ç ¼öÁ¤: ´õ ¾ÈÀüÇÑ À§Ä¡ Ã£±â
         for (int i = 0; i < 10; i++)
         {
             Vector2 randomCircle = Random.insideUnitCircle * patrolRadius;
             Vector3 testTarget = centerPosition + new Vector3(randomCircle.x, 0, randomCircle.y);
             testTarget.y = flyHeight;
-            
             testTarget = ClampToBoundaries(testTarget);
             
-            // °æ·Î¿¡ Àå¾Ö¹°ÀÌ ¾ø´ÂÁö Ã¼Å©
             Vector3 dirToTarget = testTarget - transform.position;
             if (!Physics.Raycast(transform.position, dirToTarget.normalized, dirToTarget.magnitude - 1f))
             {
                 patrolTarget = testTarget;
-                Debug.Log($"»õ ¼øÂû ¸ñÇ¥: {patrolTarget}");
                 return;
             }
         }
         
-        // ¾ÈÀüÇÑ À§Ä¡ ¸ø Ã£À¸¸é À§ÂÊÀ¸·Î
         patrolTarget = transform.position + Vector3.up * 2f;
     }
 
@@ -246,7 +338,6 @@ public class DroneAIController : MonoBehaviour
             {
                 isChasing = false;
                 SetNewPatrolTarget();
-                Debug.Log("µå·Ð: °æ°è ¹þ¾î³², ¼øÂû º¹±Í");
             }
         }
     }
@@ -265,7 +356,6 @@ public class DroneAIController : MonoBehaviour
 
     void UpdateVisualEffects()
     {
-        // ÇÁ·ÎÆç·¯
         float targetSpeed = isChasing ? propellerChaseSpeed : propellerIdleSpeed;
         currentPropellerSpeed = Mathf.Lerp(currentPropellerSpeed, targetSpeed, Time.deltaTime * 2f);
 
@@ -277,7 +367,6 @@ public class DroneAIController : MonoBehaviour
             }
         }
 
-        // Á¶¸í
         if (droneLight != null)
         {
             Color targetColor = isChasing ? lightChaseColor : lightIdleColor;
@@ -299,25 +388,19 @@ public class DroneAIController : MonoBehaviour
         if (player == null) return false;
 
         float distance = Vector3.Distance(transform.position, player.position);
-        
         if (distance > viewDistance) return false;
 
         Vector3 directionToPlayer = player.position - transform.position;
         float angle = Vector3.Angle(transform.forward, directionToPlayer);
-        
         if (angle > viewAngle / 2f) return false;
 
-        // ¡ç ¼öÁ¤: ÇÃ·¹ÀÌ¾î Áß½É(Çã¸®)À» ÇâÇØ Raycast
         Vector3 playerCenter = player.position + Vector3.up * 1f;
         Vector3 dirToCenter = playerCenter - transform.position;
         
         if (Physics.Raycast(transform.position, dirToCenter.normalized, out RaycastHit hit, viewDistance))
         {
-            Debug.Log($"? Raycast Ãæµ¹: {hit.collider.name} (Tag: {hit.collider.tag})");
-            
             if (hit.collider.CompareTag("Player"))
             {
-                Debug.Log("??? ÇÃ·¹ÀÌ¾î °¨Áö ¼º°ø!");
                 return true;
             }
         }
@@ -325,11 +408,8 @@ public class DroneAIController : MonoBehaviour
         return false;
     }
 
-    // ¡ç Ãß°¡: Ãæµ¹ ½Ã ¹æÇâ ÀüÈ¯
     void OnCollisionEnter(Collision collision)
     {
-        Debug.Log($"? Ãæµ¹: {collision.gameObject.name}");
-        
         if (!isChasing)
         {
             SetNewPatrolTarget();
@@ -353,11 +433,12 @@ public class DroneAIController : MonoBehaviour
         Gizmos.DrawLine(topLeft, bottomLeft);
 
         Gizmos.color = isChasing ? Color.red : Color.cyan;
-        Vector3 forward = transform.forward * viewDistance;
-        Gizmos.DrawRay(transform.position, forward);
+        Gizmos.DrawRay(transform.position, transform.forward * viewDistance);
         
-        // ¡ç Ãß°¡: Àå¾Ö¹° °¨Áö ¹üÀ§
         Gizmos.color = Color.yellow;
         Gizmos.DrawRay(transform.position, transform.forward * obstacleAvoidDistance);
+        
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

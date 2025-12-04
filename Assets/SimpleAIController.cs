@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections;
 
 public class SimpleAIController : MonoBehaviour
 {
@@ -28,12 +29,35 @@ public class SimpleAIController : MonoBehaviour
     [Header("Attack")]
     public string attackTrigger = "Attack";
     public float attackDuration = 1f;
+    public float attackDamage = 50f;
+    public float attackCooldown = 2f;
+    private float lastAttackTime = 0f;
+
+    [Header("Health System")]
+    public float maxHealth = 100f;
+    public float currentHealth;
+    public bool isInvincible = false;
+    public bool canKillPlayer = true;
+    public bool isBoss = false;
+
+    [Header("Knockback")]
+    public float knockbackForce = 5f;
+    public float knockbackDuration = 0.3f;
+    private bool isKnockedBack = false;
+    private Vector3 knockbackVelocity;
+
+    [Header("Visual Effects")]
+    public GameObject deathEffect;
+    public Renderer bodyRenderer;
+    public Color normalColor = Color.white;
+    public Color hitColor = Color.red;
 
     private NavMeshAgent agent;
     private Transform player;
     private Animator animator;
     private bool isChasing = false;
     private bool isAttacking = false;
+    private bool isDead = false;
     private float loseTimer = 0f;
     private float waitTimer = 0f;
     private Vector3 lastPosition;
@@ -41,6 +65,8 @@ public class SimpleAIController : MonoBehaviour
 
     void Start()
     {
+        currentHealth = maxHealth;
+
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         
@@ -54,6 +80,20 @@ public class SimpleAIController : MonoBehaviour
         if (playerObject != null)
         {
             player = playerObject.transform;
+            Debug.Log($"? 플레이어 찾음: {player.name}");
+        }
+        else
+        {
+            Debug.LogError("? 플레이어를 찾을 수 없습니다! Tag 'Player' 확인!");
+        }
+
+        if (bodyRenderer == null)
+        {
+            bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+            if (bodyRenderer == null)
+            {
+                bodyRenderer = GetComponentInChildren<MeshRenderer>();
+            }
         }
 
         lastPosition = transform.position;
@@ -62,6 +102,14 @@ public class SimpleAIController : MonoBehaviour
 
     void Update()
     {
+        if (isDead) return;
+        
+        if (isKnockedBack)
+        {
+            ApplyKnockback();
+            return;
+        }
+        
         if (isAttacking) return;
 
         bool seePlayer = CanSeePlayer();
@@ -80,9 +128,17 @@ public class SimpleAIController : MonoBehaviour
             stuckTimer = 0f;
             
             float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+            
             if (distanceToPlayer <= catchDistance)
             {
-                CatchPlayer();
+                if (canKillPlayer)
+                {
+                    CatchPlayer();
+                }
+                else
+                {
+                    AttackPlayer();
+                }
             }
         }
         else if (isChasing)
@@ -94,7 +150,6 @@ public class SimpleAIController : MonoBehaviour
                 isChasing = false;
                 agent.speed = moveSpeed;
                 MoveToRandomPoint();
-                Debug.Log("추적 종료. 순찰 복귀.");
             }
         }
         else
@@ -116,6 +171,112 @@ public class SimpleAIController : MonoBehaviour
         lastPosition = transform.position;
     }
 
+    void AttackPlayer()
+    {
+        if (Time.time < lastAttackTime + attackCooldown) return;
+        
+        lastAttackTime = Time.time;
+        
+        Debug.Log("선생님이 플레이어를 공격!");
+        
+        if (animator != null)
+        {
+            animator.SetTrigger(attackTrigger);
+        }
+        
+        // SendMessage로 플레이어 공격
+        if (player != null)
+        {
+            player.SendMessage("TakeDamage", attackDamage, SendMessageOptions.DontRequireReceiver);
+        }
+    }
+
+    public void TakeDamage(float damage, Vector3 hitDirection)
+    {
+        if (isDead) return;
+        
+        if (isInvincible)
+        {
+            Debug.Log("선생님은 무적 상태입니다!");
+            return;
+        }
+
+        currentHealth -= damage;
+        Debug.Log($"{gameObject.name} 피격! 남은 체력: {currentHealth}/{maxHealth}");
+
+        ApplyKnockbackEffect(hitDirection);
+        StartCoroutine(HitFlash());
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    void ApplyKnockbackEffect(Vector3 hitDirection)
+    {
+        isKnockedBack = true;
+        agent.enabled = false;
+        
+        knockbackVelocity = -hitDirection.normalized * knockbackForce;
+        knockbackVelocity.y = 0;
+        
+        Invoke(nameof(EndKnockback), knockbackDuration);
+    }
+
+    void ApplyKnockback()
+    {
+        transform.position += knockbackVelocity * Time.deltaTime;
+        knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, Time.deltaTime * 10f);
+    }
+
+    void EndKnockback()
+    {
+        isKnockedBack = false;
+        agent.enabled = true;
+    }
+
+    IEnumerator HitFlash()
+    {
+        if (bodyRenderer != null)
+        {
+            Color originalColor = bodyRenderer.material.color;
+            bodyRenderer.material.color = hitColor;
+            yield return new WaitForSeconds(0.1f);
+            bodyRenderer.material.color = originalColor;
+        }
+    }
+
+    void Die()
+    {
+        if (isDead) return;
+        
+        isDead = true;
+        Debug.Log($"? {gameObject.name} 사망!");
+
+        agent.isStopped = true;
+        agent.enabled = false;
+        this.enabled = false;
+
+        if (animator != null)
+        {
+            animator.SetTrigger("Death");
+        }
+
+        if (deathEffect != null)
+        {
+            Instantiate(deathEffect, transform.position + Vector3.up, Quaternion.identity);
+        }
+
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            col.enabled = false;
+        }
+
+        Destroy(gameObject, 5f);
+    }
+
     void CatchPlayer()
     {
         Debug.Log("플레이어를 잡았습니다!");
@@ -123,7 +284,6 @@ public class SimpleAIController : MonoBehaviour
         isAttacking = true;
         agent.isStopped = true;
         
-        // 플레이어 방향 보기
         Vector3 directionToPlayer = player.position - transform.position;
         directionToPlayer.y = 0;
         if (directionToPlayer != Vector3.zero)
@@ -131,23 +291,19 @@ public class SimpleAIController : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(directionToPlayer);
         }
         
-        // 공격 애니메이션 재생
         if (animator != null)
         {
             animator.SetTrigger(attackTrigger);
         }
         
-        // GameManager에 자신의 Transform 전달
         if (GameManager.Instance != null)
         {
             GameManager.Instance.PlayerCaught(transform);
         }
         
-        // 공격 모션 후 비활성화
         Invoke(nameof(DisableAI), attackDuration);
     }
 
-    // AI 비활성화
     void DisableAI()
     {
         this.enabled = false;
@@ -163,7 +319,6 @@ public class SimpleAIController : MonoBehaviour
             
             if (stuckTimer >= stuckCheckTime)
             {
-                Debug.Log("NPC가 멈춰있음. 새 목적지로 이동.");
                 agent.ResetPath();
                 MoveToRandomPoint();
                 stuckTimer = 0f;
