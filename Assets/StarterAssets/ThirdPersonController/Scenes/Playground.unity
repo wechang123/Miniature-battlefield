@@ -2895,6 +2895,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Drone
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 252a1b8b761461b43b63dc77c8cb6050, type: 3}
+      propertyPath: m_TagString
+      value: Drone
+      objectReference: {fileID: 0}
     - target: {fileID: 8449996119470504636, guid: 252a1b8b761461b43b63dc77c8cb6050, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -2950,6 +2954,12 @@ MonoBehaviour:
   viewDistance: 30
   chaseSpeed: 6
   losePlayerTime: 3
+  attackRange: 10
+  attackDamage: 10
+  attackCooldown: 2
+  projectilePrefab: {fileID: 4842541650448477926, guid: 1722849c2711cd04b90cca6548a5d8af, type: 3}
+  projectileSpawnPoint: {fileID: 0}
+  projectileSpeed: 15
   propellers:
   - {fileID: 1794987375}
   - {fileID: 1723025796}
@@ -2962,6 +2972,12 @@ MonoBehaviour:
   lightChaseIntensity: 5
   lightIdleColor: {r: 1, g: 1, b: 1, a: 1}
   lightChaseColor: {r: 1, g: 0, b: 0, a: 1}
+  bodyRenderer: {fileID: 0}
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  maxHealth: 100
+  currentHealth: 0
+  explosionEffect: {fileID: 0}
 --- !u!54 &658681062
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -4725,8 +4741,21 @@ MonoBehaviour:
   useAnimator: 1
   walkAnimationSpeed: 2
   runAnimationSpeed: 5
-  attackTrigger: Attack
+  attackTrigger: Punch
   attackDuration: 1
+  attackDamage: 50
+  attackCooldown: 2
+  maxHealth: 300
+  currentHealth: 0
+  isInvincible: 0
+  canKillPlayer: 0
+  isBoss: 0
+  knockbackForce: 5
+  knockbackDuration: 0.3
+  deathEffect: {fileID: 0}
+  bodyRenderer: {fileID: 0}
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1 &1205656114 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1132891898790674860, guid: 61330faf00ea94f909a60fb957f26809, type: 3}
