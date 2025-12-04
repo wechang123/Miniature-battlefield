@@ -29,6 +29,14 @@ namespace YajaGame.Gameplay.Combat
         [SerializeField] private float deathDelay = 2f; // 죽은 후 제거까지 시간
         [SerializeField] private GameObject deathEffectPrefab;
 
+        [Header("Drop Settings")]
+        [SerializeField] private GameObject[] dropPrefabs;  // 드랍할 아이템 프리팹들
+        [SerializeField] private float dropChance = 0.5f;   // 드랍 확률 (0~1)
+        [SerializeField] private int minDropCount = 1;      // 최소 드랍 개수
+        [SerializeField] private int maxDropCount = 2;      // 최대 드랍 개수
+        [SerializeField] private float dropSpreadRadius = 0.5f;  // 드랍 아이템 퍼지는 범위
+        [SerializeField] private float dropUpwardForce = 3f;     // 위로 튀어오르는 힘
+
         [Header("Events")]
         public UnityEvent<DamageInfo> OnDamageTaken = new UnityEvent<DamageInfo>();
         public UnityEvent OnDeath = new UnityEvent();
@@ -289,6 +297,9 @@ namespace YajaGame.Gameplay.Combat
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
             }
 
+            // 아이템 드랍
+            SpawnDrops();
+
             // 이벤트 발생
             OnDeath?.Invoke();
 
@@ -308,6 +319,59 @@ namespace YajaGame.Gameplay.Combat
 
             // 일정 시간 후 제거
             Destroy(gameObject, deathDelay);
+        }
+
+        /// <summary>
+        /// 아이템 드랍
+        /// </summary>
+        private void SpawnDrops()
+        {
+            // 드랍 프리팹이 없으면 종료
+            if (dropPrefabs == null || dropPrefabs.Length == 0)
+            {
+                Debug.Log($"[EnemyHealth] {gameObject.name}: 드랍 프리팹이 설정되지 않음");
+                return;
+            }
+
+            // 드랍 확률 체크
+            if (Random.value > dropChance)
+            {
+                Debug.Log($"[EnemyHealth] {gameObject.name}: 드랍 확률 실패 ({dropChance * 100}%)");
+                return;
+            }
+
+            // 드랍 개수 결정
+            int dropCount = Random.Range(minDropCount, maxDropCount + 1);
+            Debug.Log($"[EnemyHealth] {gameObject.name}: {dropCount}개 아이템 드랍!");
+
+            // 아이템 스폰
+            for (int i = 0; i < dropCount; i++)
+            {
+                // 랜덤 프리팹 선택
+                GameObject prefab = dropPrefabs[Random.Range(0, dropPrefabs.Length)];
+                if (prefab == null) continue;
+
+                // 스폰 위치 계산 (약간 랜덤하게 퍼뜨림)
+                Vector2 randomCircle = Random.insideUnitCircle * dropSpreadRadius;
+                Vector3 spawnPos = transform.position + new Vector3(randomCircle.x, 0.5f, randomCircle.y);
+
+                // 아이템 생성
+                GameObject droppedItem = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+                // Rigidbody가 있으면 위로 튀어오르게
+                Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 randomDirection = new Vector3(
+                        Random.Range(-1f, 1f),
+                        1f,
+                        Random.Range(-1f, 1f)
+                    ).normalized;
+                    rb.AddForce(randomDirection * dropUpwardForce, ForceMode.Impulse);
+                }
+
+                Debug.Log($"[EnemyHealth] 드랍 아이템 생성: {prefab.name} at {spawnPos}");
+            }
         }
 
         /// <summary>

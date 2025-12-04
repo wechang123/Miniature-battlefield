@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "serena": {
+      "command": "uv",
+      "args": ["--directory", "/Users/yuwichang/serena", "run", "serena-mcp-server", "--project", "/Users/yuwichang/move"]
+    }
+  }
+}

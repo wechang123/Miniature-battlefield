@@ -27,7 +27,7 @@ public class SimpleAIController : MonoBehaviour
 
     [Header("Attack")]
     public string attackTrigger = "Attack";
-    public float attackDuration = 1f;
+    public float attackDuration = 5f;
 
     [Header("Flashlight")]
     public Light flashlight; // 손전등 (Spot Light)
@@ -142,6 +142,7 @@ public class SimpleAIController : MonoBehaviour
 
         isAttacking = true;
         agent.isStopped = true;
+        agent.enabled = false; // NavMeshAgent 완전히 비활성화
 
         // 플레이어 방향 바라보기
         Vector3 directionToPlayer = player.position - transform.position;
@@ -151,20 +152,26 @@ public class SimpleAIController : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(directionToPlayer);
         }
 
-        // 공격 애니메이션 재생
+        // 공격 애니메이션 재생 (Root Motion 비활성화)
         if (animator != null)
         {
+            animator.applyRootMotion = false;
             animator.SetTrigger(attackTrigger);
         }
 
-        // GameManager에 자신의 Transform 전달
+        // 애니메이션 재생 후 GameOver 호출 (attackDuration 후)
+        Invoke(nameof(TriggerGameOver), attackDuration);
+
+        // 공격 종료 후 비활성화
+        Invoke(nameof(DisableAI), attackDuration + 0.1f);
+    }
+
+    void TriggerGameOver()
+    {
         if (GameManager.Instance != null)
         {
             GameManager.Instance.PlayerCaught(transform);
         }
-
-        // 공격 종료 후 비활성화
-        Invoke(nameof(DisableAI), attackDuration);
     }
 
     // AI 비활성화
