@@ -3085,6 +3085,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Drone
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 252a1b8b761461b43b63dc77c8cb6050, type: 3}
+      propertyPath: m_TagString
+      value: Drone
+      objectReference: {fileID: 0}
     - target: {fileID: 8449996119470504636, guid: 252a1b8b761461b43b63dc77c8cb6050, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -3140,6 +3144,12 @@ MonoBehaviour:
   viewDistance: 30
   chaseSpeed: 6
   losePlayerTime: 3
+  attackRange: 10
+  attackDamage: 10
+  attackCooldown: 2
+  projectilePrefab: {fileID: 4842541650448477926, guid: 1722849c2711cd04b90cca6548a5d8af, type: 3}
+  projectileSpawnPoint: {fileID: 0}
+  projectileSpeed: 15
   propellers:
   - {fileID: 1794987375}
   - {fileID: 1723025796}
@@ -3152,6 +3162,12 @@ MonoBehaviour:
   lightChaseIntensity: 5
   lightIdleColor: {r: 1, g: 1, b: 1, a: 1}
   lightChaseColor: {r: 1, g: 0, b: 0, a: 1}
+  bodyRenderer: {fileID: 0}
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  maxHealth: 100
+  currentHealth: 0
+  explosionEffect: {fileID: 0}
 --- !u!54 &658681062
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5509,11 +5525,24 @@ MonoBehaviour:
   useAnimator: 1
   walkAnimationSpeed: 2
   runAnimationSpeed: 5
-  attackTrigger: Attack
-  attackDuration: 5
+  attackTrigger: Punch
+  attackDuration: 1
+  attackDamage: 50
+  attackCooldown: 2
   flashlight: {fileID: 0}
   patrolLightIntensity: 1.5
   chaseLightIntensity: 3
+  maxHealth: 300
+  currentHealth: 0
+  isInvincible: 0
+  canKillPlayer: 0
+  isBoss: 0
+  knockbackForce: 5
+  knockbackDuration: 0.3
+  deathEffect: {fileID: 0}
+  bodyRenderer: {fileID: 0}
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!54 &1190384216
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5551,8 +5580,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c58db78160ecb43d296e6b9ce278fc1f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   maxHealth: 100
   currentHealth: 0
   hitFlashDuration: 0.8
