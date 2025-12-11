@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 namespace YajaGame.AI
 {
@@ -37,6 +38,7 @@ namespace YajaGame.AI
         private float _targetRange;
         private float _targetAngle;
         private Color _targetColor;
+        private Coroutine _transitionCoroutine;
 
         private void Awake()
         {
@@ -56,27 +58,54 @@ namespace YajaGame.AI
             SetPatrolMode();
         }
 
-        private void Update()
+        private void LateUpdate()
         {
-            // 부드러운 전환
-            spotLight.intensity = Mathf.Lerp(spotLight.intensity, _targetIntensity, Time.deltaTime * 3f);
-            spotLight.range = Mathf.Lerp(spotLight.range, _targetRange, Time.deltaTime * 3f);
-            spotLight.spotAngle = Mathf.Lerp(spotLight.spotAngle, _targetAngle, Time.deltaTime * 3f);
-            spotLight.color = Color.Lerp(spotLight.color, _targetColor, Time.deltaTime * 3f);
-
-            // 깜빡임 효과
+            // 깜빡임 효과만 Update에서 처리 (부드러운 효과를 위해)
             if (enableFlicker)
             {
                 float flicker = Mathf.PerlinNoise(Time.time * flickerSpeed, 0f) * flickerAmount;
                 spotLight.intensity = _baseIntensity + flicker;
             }
 
-            // 손전등이 앞을 향하도록
+            // 손전등 위치/방향 업데이트 (LateUpdate에서 처리하여 성능 향상)
             if (spotLight.transform.parent == transform)
             {
                 spotLight.transform.localPosition = lightOffset;
                 spotLight.transform.forward = transform.forward;
             }
+        }
+
+        /// <summary>
+        /// 라이트 속성 부드럽게 전환하는 코루틴
+        /// </summary>
+        private IEnumerator TransitionLightProperties(float targetIntensity, float targetRange, float targetAngle, Color targetColor)
+        {
+            float startIntensity = spotLight.intensity;
+            float startRange = spotLight.range;
+            float startAngle = spotLight.spotAngle;
+            Color startColor = spotLight.color;
+
+            float transitionTime = 0f;
+            float duration = 0.5f; // 전환 시간
+
+            while (transitionTime < duration)
+            {
+                transitionTime += Time.deltaTime;
+                float t = transitionTime / duration;
+
+                spotLight.intensity = Mathf.Lerp(startIntensity, targetIntensity, t);
+                spotLight.range = Mathf.Lerp(startRange, targetRange, t);
+                spotLight.spotAngle = Mathf.Lerp(startAngle, targetAngle, t);
+                spotLight.color = Color.Lerp(startColor, targetColor, t);
+
+                yield return null;
+            }
+
+            // 최종 값 설정
+            spotLight.intensity = targetIntensity;
+            spotLight.range = targetRange;
+            spotLight.spotAngle = targetAngle;
+            spotLight.color = targetColor;
         }
 
         /// <summary>
@@ -90,6 +119,12 @@ namespace YajaGame.AI
             _targetAngle = patrolAngle;
             _targetColor = patrolColor;
             _baseIntensity = patrolIntensity;
+
+            // 기존 전환 코루틴 중지하고 새로운 전환 시작
+            if (_transitionCoroutine != null)
+                StopCoroutine(_transitionCoroutine);
+            
+            _transitionCoroutine = StartCoroutine(TransitionLightProperties(patrolIntensity, patrolRange, patrolAngle, patrolColor));
 
             Debug.Log("[EnemyFlashlight] 순찰 모드");
         }
@@ -105,6 +140,12 @@ namespace YajaGame.AI
             _targetAngle = chaseAngle;
             _targetColor = chaseColor;
             _baseIntensity = chaseIntensity;
+
+            // 기존 전환 코루틴 중지하고 새로운 전환 시작
+            if (_transitionCoroutine != null)
+                StopCoroutine(_transitionCoroutine);
+            
+            _transitionCoroutine = StartCoroutine(TransitionLightProperties(chaseIntensity, chaseRange, chaseAngle, chaseColor));
 
             Debug.Log("[EnemyFlashlight] 추적 모드!");
         }

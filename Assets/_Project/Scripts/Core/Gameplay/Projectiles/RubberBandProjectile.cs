@@ -116,9 +116,13 @@ namespace YajaGame.Gameplay.Projectiles
 
         private void Update()
         {
-            if (_isSlowed && Time.time >= _slowEndTime)
+            // 슬로우 상태일 때만 시간 체크 (성능 최적화)
+            if (_isSlowed)
             {
-                RemoveSlow();
+                if (Time.time >= _slowEndTime)
+                {
+                    RemoveSlow();
+                }
             }
         }
 

@@ -13,6 +13,8 @@ namespace YajaGame.Gameplay
 
         private Rigidbody rb;
         private float spawnTime;
+        private float _groundCheckTimer = 0f;
+        private const float GROUND_CHECK_INTERVAL = 0.1f; // 0.1초마다만 체크
 
         protected override void Awake()
         {
@@ -64,29 +66,33 @@ namespace YajaGame.Gameplay
         {
             if (rb == null || rb.isKinematic) return; // 이미 착지했으면 리턴
 
-            // 바닥 감지 (Raycast 사용)
-            RaycastHit hit;
-            float rayDistance = 0.5f;
+            // 타이머 기반으로 Raycast 빈도 줄이기 (성능 최적화)
+            _groundCheckTimer += Time.fixedDeltaTime;
+            if (_groundCheckTimer < GROUND_CHECK_INTERVAL) return;
+            
+            _groundCheckTimer = 0f;
 
-            if (Physics.Raycast(transform.position, Vector3.down, out hit, rayDistance))
+            // 속도가 충분히 느려졌을 때만 바닥 체크 (성능 최적화)
+            if (rb.linearVelocity.magnitude < 2f)
             {
-                // 바닥 발견! Kinematic으로 전환하여 고정
-                rb.isKinematic = true;
-                rb.useGravity = false;
+                // 바닥 감지 (Raycast 사용)
+                RaycastHit hit;
+                float rayDistance = 0.5f;
 
-                // 바닥에서 약간 위에 위치시키기
-                transform.position = hit.point + Vector3.up * 0.1f;
+                if (Physics.Raycast(transform.position, Vector3.down, out hit, rayDistance))
+                {
+                    // 바닥 발견! Kinematic으로 전환하여 고정
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
 
-                Debug.Log($"[Fragment] 바닥 착지! Y={transform.position.y:F2}, Hit={hit.collider.name}");
+                    // 바닥에서 약간 위에 위치시키기
+                    transform.position = hit.point + Vector3.up * 0.1f;
 
-                // 2초 후 줍기 가능하게
-                Invoke(nameof(EnablePickup), 2f);
-            }
+                    // Debug.Log($"[Fragment] 바닥 착지! Y={transform.position.y:F2}, Hit={hit.collider.name}"); // 성능 최적화를 위해 주석 처리
 
-            // 디버그 로그 (처음 3초간)
-            if (Time.time - spawnTime < 3f)
-            {
-                Debug.Log($"[Fragment] Y={transform.position.y:F2}, Velocity.Y={rb.linearVelocity.y:F2}, Kinematic={rb.isKinematic}");
+                    // 2초 후 줍기 가능하게
+                    Invoke(nameof(EnablePickup), 2f);
+                }
             }
         }
 

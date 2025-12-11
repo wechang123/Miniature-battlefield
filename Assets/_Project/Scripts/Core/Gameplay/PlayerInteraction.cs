@@ -13,7 +13,7 @@ namespace YajaGame.Gameplay
         [Header("Interaction Settings")]
         [SerializeField] private float interactionRange = 3f;
         [SerializeField] private LayerMask itemLayer = -1;
-        [SerializeField] private float scanInterval = 0.2f;
+        [SerializeField] private float scanInterval = 0.3f; // 0.2초 → 0.3초로 늘려서 성능 향상
 
         [Header("Animation")]
         [SerializeField] private Animator animator;
@@ -62,15 +62,7 @@ namespace YajaGame.Gameplay
 
         private void Update()
         {
-            // 주기적으로 주변 아이템 스캔
-            _scanTimer += Time.deltaTime;
-            if (_scanTimer >= scanInterval)
-            {
-                _scanTimer = 0f;
-                ScanForItems();
-            }
-
-            // E키 입력 처리 (줍기)
+            // E키 입력 처리 (줍기) - 즉시 반응이 필요한 입력만 Update에서 처리
             if (_input.pickup)
             {
                 TryPickup();
@@ -81,6 +73,17 @@ namespace YajaGame.Gameplay
             if (Input.GetKeyDown(KeyCode.F))
             {
                 TryDrop();
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            // 주기적으로 주변 아이템 스캔 - FixedUpdate로 이동하여 성능 향상
+            _scanTimer += Time.fixedDeltaTime;
+            if (_scanTimer >= scanInterval)
+            {
+                _scanTimer = 0f;
+                ScanForItems();
             }
         }
 

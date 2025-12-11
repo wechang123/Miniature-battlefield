@@ -59,21 +59,30 @@ namespace YajaGame.UI
             }
         }
 
+        private float _uiUpdateTimer = 0f;
+        private const float UI_UPDATE_INTERVAL = 0.033f; // 30fps로 UI 위치 업데이트
+
         private void Update()
         {
-            // 아이템 위치 추적 (월드 → 스크린 좌표 변환)
+            // UI 업데이트 빈도를 줄여서 성능 최적화
             if (isShowing && _currentItem != null && _mainCamera != null && _promptRectTransform != null)
             {
-                // 아이템 월드 위치 (약간 위로)
-                Vector3 worldPos = _currentItem.Transform.position + Vector3.up * 0.5f;
-
-                // 월드 → 스크린 좌표 변환
-                Vector3 screenPos = _mainCamera.WorldToScreenPoint(worldPos);
-
-                // 카메라 앞쪽에 있을 때만 표시
-                if (screenPos.z > 0)
+                _uiUpdateTimer += Time.deltaTime;
+                if (_uiUpdateTimer >= UI_UPDATE_INTERVAL)
                 {
-                    _promptRectTransform.position = screenPos;
+                    _uiUpdateTimer = 0f;
+
+                    // 아이템 월드 위치 (약간 위로)
+                    Vector3 worldPos = _currentItem.Transform.position + Vector3.up * 0.5f;
+
+                    // 월드 → 스크린 좌표 변환
+                    Vector3 screenPos = _mainCamera.WorldToScreenPoint(worldPos);
+
+                    // 카메라 앞쪽에 있을 때만 표시
+                    if (screenPos.z > 0)
+                    {
+                        _promptRectTransform.position = screenPos;
+                    }
                 }
             }
 

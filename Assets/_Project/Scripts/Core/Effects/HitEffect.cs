@@ -26,11 +26,15 @@ namespace YajaGame.Effects
 
         private void Update()
         {
-            if (scaleOverTime)
+            // 스케일 애니메이션이 활성화된 경우에만 처리 (성능 최적화)
+            if (scaleOverTime && gameObject.activeInHierarchy)
             {
                 float t = (Time.time - _spawnTime) / lifetime;
-                float scale = scaleCurve.Evaluate(t);
-                transform.localScale = _initialScale * scale;
+                if (t <= 1f) // 애니메이션이 끝나지 않은 경우에만 계산
+                {
+                    float scale = scaleCurve.Evaluate(t);
+                    transform.localScale = _initialScale * scale;
+                }
             }
         }
     }

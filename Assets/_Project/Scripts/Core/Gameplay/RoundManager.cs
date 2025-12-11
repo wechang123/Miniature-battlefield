@@ -39,10 +39,21 @@ namespace YajaGame.Gameplay
         [SerializeField] private GameObject teacherPrefab;
         [SerializeField] private GameObject dronePrefab;
         [SerializeField] private int teacherCount = 1;
-        [SerializeField] private int droneCount = 2;
+        [SerializeField] private int droneCount = 3;
+        
+        [Header("Drone Random Spawn Area - Corridor")]
+        [Tooltip("드론 랜덤 스폰을 위한 복도 구역")]
+        [SerializeField] private bool useRandomDroneSpawn = true;
+        [SerializeField] private Vector3 droneSpawnCorner1 = new Vector3(-85, 3, 72);  // 좌하단 (높이 3m)
+        [SerializeField] private Vector3 droneSpawnCorner2 = new Vector3(-85, 3, 75);  // 좌상단
+        [SerializeField] private Vector3 droneSpawnCorner3 = new Vector3(-16, 3, 72);  // 우하단
+        [SerializeField] private Vector3 droneSpawnCorner4 = new Vector3(-16, 3, 75);  // 우상단
+        
+        // 드론 스폰 영역 계산용 변수
+        private float droneMinX, droneMaxX, droneMinZ, droneMaxZ;
 
         [Header("Scene Transition")]
-        [SerializeField] private string nextSceneName = "Round2";
+        [SerializeField] private string nextSceneName = "MainMenu";
         [SerializeField] private bool useSceneTransition = true;
 
         [Header("UI References")]
@@ -95,12 +106,38 @@ namespace YajaGame.Gameplay
 
         private void Start()
         {
+            // 드론 스폰 영역 계산
+            CalculateDroneSpawnBounds();
+            
             // UI 초기화
             if (roundStartPanel != null) roundStartPanel.SetActive(false);
             if (roundClearPanel != null) roundClearPanel.SetActive(false);
 
             // 라운드 시작
             StartCoroutine(StartRoundWithDelay(roundStartDelay));
+        }
+        
+        /// <summary>
+        /// 드론 스폰 영역의 최소/최대 좌표 계산
+        /// </summary>
+        private void CalculateDroneSpawnBounds()
+        {
+            droneMinX = Mathf.Min(droneSpawnCorner1.x, droneSpawnCorner2.x, droneSpawnCorner3.x, droneSpawnCorner4.x);
+            droneMaxX = Mathf.Max(droneSpawnCorner1.x, droneSpawnCorner2.x, droneSpawnCorner3.x, droneSpawnCorner4.x);
+            droneMinZ = Mathf.Min(droneSpawnCorner1.z, droneSpawnCorner2.z, droneSpawnCorner3.z, droneSpawnCorner4.z);
+            droneMaxZ = Mathf.Max(droneSpawnCorner1.z, droneSpawnCorner2.z, droneSpawnCorner3.z, droneSpawnCorner4.z);
+        }
+        
+        /// <summary>
+        /// 복도 구역 내 랜덤 드론 스폰 위치 생성
+        /// </summary>
+        private Vector3 GetRandomDroneSpawnPosition()
+        {
+            float randomX = Random.Range(droneMinX, droneMaxX);
+            float randomZ = Random.Range(droneMinZ, droneMaxZ);
+            float randomY = Random.Range(3f, 5f); // 드론은 공중에 떠있음
+            
+            return new Vector3(randomX, randomY, randomZ);
         }
 
         /// <summary>
@@ -204,12 +241,30 @@ namespace YajaGame.Gameplay
                 // 드론 스폰
                 for (int i = 0; i < droneCount; i++)
                 {
-                    if (dronePrefab != null && spawnIndex < spawnPoints.Length)
+                    if (dronePrefab != null)
                     {
-                        GameObject drone = Instantiate(dronePrefab, spawnPoints[spawnIndex].position, spawnPoints[spawnIndex].rotation);
+                        Vector3 spawnPosition;
+                        
+                        if (useRandomDroneSpawn)
+                        {
+                            // 복도 구역에서 랜덤 스폰
+                            spawnPosition = GetRandomDroneSpawnPosition();
+                        }
+                        else if (spawnIndex < spawnPoints.Length)
+                        {
+                            // 기존 스폰 포인트 사용
+                            spawnPosition = spawnPoints[spawnIndex].position;
+                            spawnIndex++;
+                        }
+                        else
+                        {
+                            // 기본 위치
+                            spawnPosition = new Vector3(-50, 3, 73.5f);
+                        }
+                        
+                        GameObject drone = Instantiate(dronePrefab, spawnPosition, Quaternion.identity);
                         RegisterEnemy(drone, isDrone: true);  // 드론으로 등록
-                        spawnIndex++;
-                        Debug.Log($"[RoundManager] 드론 스폰: {spawnPoints[spawnIndex - 1].position}");
+                        Debug.Log($"[RoundManager] 드론 스폰: {spawnPosition}");
                     }
                 }
             }
@@ -327,12 +382,19 @@ namespace YajaGame.Gameplay
 
         /// <summary>
         /// 라운드 클리어 체크
+        /// 드론 3개와 보스(선생님) 1개를 모두 처치해야 클리어
         /// </summary>
         private void CheckRoundClear()
         {
+            // 모든 적이 처치되었는지 확인 (드론 3개 + 보스 1개 = 총 4개)
             if (_remainingEnemies <= 0)
             {
+                Debug.Log($"[RoundManager] 라운드 클리어 조건 달성! 드론: {_remainingDrones}/3, 총 적: {_remainingEnemies}");
                 RoundClear();
+            }
+            else
+            {
+                Debug.Log($"[RoundManager] 아직 적이 남아있음. 드론: {_remainingDrones}/3, 총 적: {_remainingEnemies}");
             }
         }
 
@@ -395,10 +457,11 @@ namespace YajaGame.Gameplay
                 roundText.text = $"라운드 {currentRound}";
             }
 
-            // 남은 적 텍스트
+            // 남은 적 텍스트 (드론과 보스 구분해서 표시)
             if (enemyCountText != null)
             {
-                enemyCountText.text = $"남은 적: {_remainingEnemies}";
+                int remainingBosses = _remainingEnemies - _remainingDrones;
+                enemyCountText.text = $"남은 적: {_remainingEnemies} (드론: {_remainingDrones}, 보스: {remainingBosses})";
             }
         }
 
@@ -425,6 +488,20 @@ namespace YajaGame.Gameplay
                     }
                 }
             }
+
+            // 게임 오버 후 MainMenu로 전환
+            StartCoroutine(LoadMainMenuAfterGameOver());
+        }
+
+        /// <summary>
+        /// 게임 오버 후 MainMenu 씬으로 전환
+        /// </summary>
+        private System.Collections.IEnumerator LoadMainMenuAfterGameOver()
+        {
+            yield return new WaitForSeconds(3f); // 3초 대기
+            
+            Debug.Log("[RoundManager] 게임 오버 - MainMenu 씬으로 전환");
+            SceneManager.LoadScene("MainMenu");
         }
 
         /// <summary>

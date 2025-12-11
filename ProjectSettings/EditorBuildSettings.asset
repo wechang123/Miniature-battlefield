@@ -9,6 +9,12 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: b0b41038b8b6e47f4b46de7eb2fdd2d6
   - enabled: 1
+    path: Assets/Scenes/Round2.unity
+    guid: d7027f0eb6f1a45e5b7a69395d707b46
+  - enabled: 0
+    path: Assets/Scenes/Cinematic.unity
+    guid: 1d1bc7c22fe094150a57803a875e5bb1
+  - enabled: 1
     path: Assets/StarterAssets/ThirdPersonController/Scenes/Playground.unity
     guid: e9017d5f96b9f09489b4b37e1d6eb914
   - enabled: 0

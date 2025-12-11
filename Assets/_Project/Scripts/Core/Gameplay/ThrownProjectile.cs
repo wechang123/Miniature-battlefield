@@ -74,20 +74,29 @@ namespace YajaGame.Gameplay
                 _itemBase.enabled = false;
             }
 
-            Debug.Log($"[ThrownProjectile] 발사! velocity={velocity.magnitude:F2}, isKinematic={_rb.isKinematic}, useGravity={_rb.useGravity}");
+            // Debug.Log($"[ThrownProjectile] 발사! velocity={velocity.magnitude:F2}, isKinematic={_rb.isKinematic}, useGravity={_rb.useGravity}"); // 성능 최적화를 위해 주석 처리
         }
+
+        private float _velocityCheckTimer = 0f;
+        private const float VELOCITY_CHECK_INTERVAL = 0.2f; // 0.2초마다만 체크
 
         private void FixedUpdate()
         {
             if (!_hasLaunched) return;
 
-            // 일정 시간 후 속도가 매우 낮으면 정착
-            if (Time.time - _launchTime > settleDelay)
+            // 일정 시간 후에만 속도 체크 시작
+            if (Time.time - _launchTime <= settleDelay) return;
+
+            // 타이머 기반으로 속도 체크 빈도 줄이기 (성능 최적화)
+            _velocityCheckTimer += Time.fixedDeltaTime;
+            if (_velocityCheckTimer < VELOCITY_CHECK_INTERVAL) return;
+            
+            _velocityCheckTimer = 0f;
+
+            // 속도가 매우 낮으면 정착
+            if (_rb.linearVelocity.magnitude < groundStopVelocity)
             {
-                if (_rb.linearVelocity.magnitude < groundStopVelocity)
-                {
-                    SettleOnGround();
-                }
+                SettleOnGround();
             }
         }
 

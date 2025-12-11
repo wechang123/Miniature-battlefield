@@ -77,10 +77,13 @@ namespace YajaGame.UI
 
         private void Update()
         {
-            // 인트로에서 아무 키나 누르면 메인 메뉴로
-            if (isIntroShowing && (Input.anyKeyDown || Input.GetMouseButtonDown(0)))
+            // 인트로 상태일 때만 입력 체크 (성능 최적화)
+            if (isIntroShowing)
             {
-                ShowMainMenu();
+                if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+                {
+                    ShowMainMenu();
+                }
             }
         }
 
@@ -113,19 +116,16 @@ namespace YajaGame.UI
         {
             isIntroShowing = false;
 
-            // 페이드 아웃 효과
-            if (introCanvasGroup != null)
-            {
-                StartCoroutine(FadeOutIntro());
-            }
-            else
-            {
-                if (introPanel != null)
-                    introPanel.SetActive(false);
+            // 바로 전환 (페이드 효과 없이)
+            if (introPanel != null)
+                introPanel.SetActive(false);
 
-                if (mainMenuPanel != null)
-                    mainMenuPanel.SetActive(true);
-            }
+            if (mainMenuPanel != null)
+                mainMenuPanel.SetActive(true);
+
+            // introCanvasGroup 알파값도 초기화 (혹시 모를 상황 대비)
+            if (introCanvasGroup != null)
+                introCanvasGroup.alpha = 0f;
 
             Debug.Log("[MainMenuManager] 메인 메뉴 표시");
         }
@@ -158,7 +158,8 @@ namespace YajaGame.UI
         public void OnPlayButtonClicked()
         {
             Debug.Log("[MainMenuManager] 게임 시작!");
-            StartCoroutine(LoadGameScene());
+            // 바로 씬 전환 (로딩 화면 없이)
+            SceneManager.LoadScene(gameSceneName);
         }
 
         /// <summary>

@@ -77,11 +77,20 @@ namespace YajaGame.Gameplay
             startPosition = transform.position;
         }
 
+        private float _animationTimer = 0f;
+        private const float ANIMATION_UPDATE_INTERVAL = 0.05f; // 20fps로 애니메이션 업데이트
+
         protected virtual void Update()
         {
             if (isPickable)
             {
-                AnimateItem();
+                // 애니메이션 업데이트 빈도를 줄여서 성능 최적화
+                _animationTimer += Time.deltaTime;
+                if (_animationTimer >= ANIMATION_UPDATE_INTERVAL)
+                {
+                    _animationTimer = 0f;
+                    AnimateItem();
+                }
             }
         }
 

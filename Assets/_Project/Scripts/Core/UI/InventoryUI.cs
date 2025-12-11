@@ -56,8 +56,8 @@ namespace YajaGame.UI
 
         private void Update()
         {
-            // 알림 페이드아웃
-            if (notificationTimer > 0f)
+            // 알림 페이드아웃 - 활성화된 경우에만 처리
+            if (notificationTimer > 0f && notificationPanel != null && notificationPanel.activeSelf)
             {
                 notificationTimer -= Time.deltaTime;
                 if (notificationCanvasGroup != null)
@@ -65,7 +65,7 @@ namespace YajaGame.UI
                     notificationCanvasGroup.alpha = Mathf.Clamp01(notificationTimer / notificationDuration);
                 }
 
-                if (notificationTimer <= 0f && notificationPanel != null)
+                if (notificationTimer <= 0f)
                 {
                     notificationPanel.SetActive(false);
                 }

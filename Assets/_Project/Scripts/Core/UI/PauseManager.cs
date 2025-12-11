@@ -14,10 +14,16 @@ namespace YajaGame.UI
         [SerializeField] private GameObject pausePanel;
         [SerializeField] private GameObject settingsPanel;
 
+        [Header("UI Elements to Hide During Pause")]
+        [SerializeField] private HeldWeaponUI heldWeaponUI;
+        [SerializeField] private KeyCollectionUI keyCollectionUI;
+
         [Header("Pause Buttons")]
         [SerializeField] private Button resumeButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button mainMenuButton;
+        [SerializeField] private Button quitButton;
+        [SerializeField] private Button closePauseButton;
 
         [Header("Settings")]
         [SerializeField] private Button closeSettingsButton;
@@ -39,6 +45,13 @@ namespace YajaGame.UI
             if (settingsPanel != null)
                 settingsPanel.SetActive(false);
 
+            // UI 요소들 자동 찾기
+            if (heldWeaponUI == null)
+                heldWeaponUI = FindObjectOfType<HeldWeaponUI>();
+
+            if (keyCollectionUI == null)
+                keyCollectionUI = FindObjectOfType<KeyCollectionUI>();
+
             // 버튼 이벤트 연결
             if (resumeButton != null)
                 resumeButton.onClick.AddListener(Resume);
@@ -48,6 +61,12 @@ namespace YajaGame.UI
 
             if (mainMenuButton != null)
                 mainMenuButton.onClick.AddListener(GoToMainMenu);
+
+            if (quitButton != null)
+                quitButton.onClick.AddListener(QuitGame);
+
+            if (closePauseButton != null)
+                closePauseButton.onClick.AddListener(ClosePausePanel);
 
             if (closeSettingsButton != null)
                 closeSettingsButton.onClick.AddListener(CloseSettings);
@@ -78,10 +97,15 @@ namespace YajaGame.UI
                     // 설정 패널이 열려있으면 닫기
                     CloseSettings();
                 }
-                else if (isPaused)
+                else if (isPaused && pausePanel.activeInHierarchy)
                 {
-                    // 일시정지 상태면 재개
+                    // 일시정지 패널이 열려있으면 재개
                     Resume();
+                }
+                else if (isPaused && !pausePanel.activeInHierarchy)
+                {
+                    // 일시정지 상태이지만 패널이 닫혀있으면 패널 다시 열기
+                    ShowPausePanel();
                 }
                 else
                 {
@@ -101,6 +125,9 @@ namespace YajaGame.UI
 
             if (pausePanel != null)
                 pausePanel.SetActive(true);
+
+            // 게임 UI 요소들 숨기기
+            HideGameUI();
 
             // 커서 표시
             Cursor.visible = true;
@@ -124,11 +151,51 @@ namespace YajaGame.UI
             if (settingsPanel != null)
                 settingsPanel.SetActive(false);
 
+            // 게임 UI 요소들 다시 표시
+            ShowGameUI();
+
             // 커서 숨김 (게임 설정에 따라 조정)
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
 
             Debug.Log("[PauseManager] 게임 재개");
+        }
+
+        /// <summary>
+        /// 일시정지 패널 닫기 (게임은 계속 일시정지 상태 유지)
+        /// </summary>
+        public void ClosePausePanel()
+        {
+            // 패널만 닫고 일시정지 상태는 유지
+            if (pausePanel != null)
+                pausePanel.SetActive(false);
+
+            if (settingsPanel != null)
+                settingsPanel.SetActive(false);
+
+            isSettingsOpen = false;
+            // isPaused는 true로 유지, Time.timeScale도 0으로 유지
+            // UI 요소들은 계속 숨김 상태 유지
+
+            Debug.Log("[PauseManager] 일시정지 패널 닫기 (게임은 계속 정지 상태)");
+        }
+
+        /// <summary>
+        /// 일시정지 패널 다시 열기
+        /// </summary>
+        public void ShowPausePanel()
+        {
+            if (pausePanel != null)
+                pausePanel.SetActive(true);
+
+            // 게임 UI 요소들 숨기기 (혹시 표시되어 있다면)
+            HideGameUI();
+
+            // 커서 표시
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+
+            Debug.Log("[PauseManager] 일시정지 패널 다시 열기");
         }
 
         /// <summary>
@@ -174,6 +241,20 @@ namespace YajaGame.UI
         }
 
         /// <summary>
+        /// 게임 종료
+        /// </summary>
+        public void QuitGame()
+        {
+            Debug.Log("[PauseManager] 게임 종료");
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
+        /// <summary>
         /// BGM 볼륨 변경
         /// </summary>
         private void OnBGMVolumeChanged(float value)
@@ -189,6 +270,46 @@ namespace YajaGame.UI
         {
             PlayerPrefs.SetFloat("SFXVolume", value);
             Debug.Log($"[PauseManager] SFX 볼륨: {value}");
+        }
+
+        /// <summary>
+        /// 게임 UI 요소들 숨기기
+        /// </summary>
+        private void HideGameUI()
+        {
+            // HeldWeaponUI (WeaponSlots) 숨기기
+            if (heldWeaponUI != null && heldWeaponUI.gameObject != null)
+            {
+                heldWeaponUI.gameObject.SetActive(false);
+                Debug.Log("[PauseManager] HeldWeaponUI 숨김");
+            }
+
+            // KeyCollectionUI 숨기기
+            if (keyCollectionUI != null && keyCollectionUI.gameObject != null)
+            {
+                keyCollectionUI.gameObject.SetActive(false);
+                Debug.Log("[PauseManager] KeyCollectionUI 숨김");
+            }
+        }
+
+        /// <summary>
+        /// 게임 UI 요소들 다시 표시
+        /// </summary>
+        private void ShowGameUI()
+        {
+            // HeldWeaponUI (WeaponSlots) 표시
+            if (heldWeaponUI != null && heldWeaponUI.gameObject != null)
+            {
+                heldWeaponUI.gameObject.SetActive(true);
+                Debug.Log("[PauseManager] HeldWeaponUI 표시");
+            }
+
+            // KeyCollectionUI 표시
+            if (keyCollectionUI != null && keyCollectionUI.gameObject != null)
+            {
+                keyCollectionUI.gameObject.SetActive(true);
+                Debug.Log("[PauseManager] KeyCollectionUI 표시");
+            }
         }
 
         /// <summary>

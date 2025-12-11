@@ -38,7 +38,7 @@ namespace YajaGame.Gameplay
         [SerializeField] private bool enableExclusionZone = true; // 제외 구역 활성화 여부
         
         [Header("Round Completion")]
-        [SerializeField] private string nextSceneName = "Round2"; // 다음 씬 이름
+        [SerializeField] private string nextSceneName = "MainMenu"; // 다음 씬 이름
         [SerializeField] private float roundCompleteDelay = 3f;
         
         [Header("UI References")]
@@ -344,19 +344,30 @@ namespace YajaGame.Gameplay
             
             Debug.Log("[Stage2KeyManager] ★★★ CompleteRound() 시작! 모든 키를 수집했습니다!");
             
+            // RoundManager의 라운드 클리어 이벤트 호출 (Round Successful UI 표시를 위해)
+            if (RoundManager.Instance != null)
+            {
+                Debug.Log("[Stage2KeyManager] ★★★ RoundManager.OnRoundClear 이벤트 호출!");
+                RoundManager.Instance.OnRoundClear?.Invoke();
+            }
+            else
+            {
+                Debug.LogWarning("[Stage2KeyManager] RoundManager.Instance가 null입니다. Round Successful UI가 표시되지 않을 수 있습니다.");
+            }
+            
             // 완료 이펙트
             if (roundCompleteEffect != null)
             {
                 Instantiate(roundCompleteEffect, Camera.main.transform.position, Quaternion.identity);
             }
             
-            // 완료 UI 표시
+            // 완료 UI 표시 (기존 Stage2 전용 UI)
             if (roundCompletePanel != null)
             {
                 roundCompletePanel.SetActive(true);
                 if (roundCompleteText != null)
                 {
-                    roundCompleteText.text = "모든 키를 수집했습니다!\nRound2 씬으로 이동합니다...";
+                    roundCompleteText.text = "모든 키를 수집했습니다!\nMainMenu 씬으로 이동합니다...";
                 }
             }
             

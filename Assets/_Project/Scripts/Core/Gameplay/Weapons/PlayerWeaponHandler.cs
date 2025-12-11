@@ -55,8 +55,12 @@ namespace YajaGame.Gameplay.Weapons
 
         private void Update()
         {
-            HandleWeaponInput();
-            HandleWeaponSwitching();
+            // 무기가 있을 때만 입력 처리
+            if (_weaponController != null)
+            {
+                HandleWeaponInput();
+                HandleWeaponSwitching();
+            }
         }
 
         /// <summary>

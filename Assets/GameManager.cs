@@ -162,6 +162,6 @@ public class GameManager : MonoBehaviour
 
     void RestartGame()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneManager.LoadScene("MainMenu");
     }
 }

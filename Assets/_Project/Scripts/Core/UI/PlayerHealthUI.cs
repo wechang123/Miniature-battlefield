@@ -84,12 +84,18 @@ namespace YajaGame.UI
 
         private void Update()
         {
-            // 부드러운 애니메이션
+            // 부드러운 애니메이션 - 차이가 클 때만 업데이트
             if (animateChanges && healthSlider != null)
             {
-                if (Mathf.Abs(healthSlider.value - _targetValue) > 0.001f)
+                float difference = Mathf.Abs(healthSlider.value - _targetValue);
+                if (difference > 0.01f) // 임계값을 높여서 불필요한 업데이트 줄임
                 {
                     healthSlider.value = Mathf.Lerp(healthSlider.value, _targetValue, Time.deltaTime * animationSpeed);
+                }
+                else if (difference > 0.001f)
+                {
+                    // 거의 도달했으면 바로 설정
+                    healthSlider.value = _targetValue;
                 }
             }
         }

@@ -12,11 +12,12 @@ public class DroneAIController : MonoBehaviour, IDamageable
     public float obstacleAvoidDistance = 3f;
     public LayerMask obstacleLayer;
 
-    [Header("Boundaries")]
-    public float maxX = 25f;
-    public float minX = -25f;
-    public float maxZ = 25f;
-    public float minZ = -25f;
+    [Header("Boundaries - Corridor Area")]
+    [Tooltip("복도 구역으로 제한")]
+    public float maxX = -16f;  // 복도 우측 경계
+    public float minX = -85f;  // 복도 좌측 경계
+    public float maxZ = 75f;   // 복도 상단 경계
+    public float minZ = 72f;   // 복도 하단 경계
 
     [Header("Vision Settings")]
     public float viewAngle = 180f;

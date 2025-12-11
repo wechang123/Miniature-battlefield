@@ -37,13 +37,17 @@ namespace YajaGame.UI
         [SerializeField] private GameObject victoryPanel;
         [SerializeField] private Image victoryImage;  // 메세지/탈출 성공 메세지.png
 
-        [Header("Enemy Count UI")]
-        [SerializeField] private GameObject enemyCountPanel;
+        [Header("Drone Count UI")]
+        [SerializeField] private GameObject droneCountPanel;
         [SerializeField] private Image droneIconImage;  // drone-count/드론 아이콘.png
-        [SerializeField] private TextMeshProUGUI enemyCountText;
-        [SerializeField] private Image[] droneCountImages;  // drone-count/드론-N.png (0~10)
-        [SerializeField] private Image enemyCountImage;  // 단일 이미지 (간단 버전)
-        [SerializeField] private Sprite[] enemyCountSprites;  // 드론-0 ~ 드론-10 스프라이트 배열
+        [SerializeField] private Image droneCountImage;  // EnemyCountBg에 할당할 단일 이미지
+        [SerializeField] private Sprite[] droneCountSprites;  // 드론-0 ~ 드론-5 스프라이트 배열 (인덱스 순서대로)
+
+        [Header("Key Count UI")]
+        [SerializeField] private GameObject keyCountPanel;
+        [SerializeField] private Image keyIconImage;  // key 아이콘 이미지
+        [SerializeField] private Image keyCountImage;  // 키 개수를 표시할 단일 이미지
+        [SerializeField] private Sprite[] keyCountSprites;  // key-0 ~ key-5 스프라이트 배열 (인덱스 순서대로)
 
         [Header("Warning UI")]
         [SerializeField] private GameObject warningPanel;
@@ -103,6 +107,9 @@ namespace YajaGame.UI
                 Debug.LogWarning("[RoundUI] RoundManager.Instance가 null입니다!");
                 StartCoroutine(DelayedInit());
             }
+
+            // Stage2KeyManager 이벤트 연결
+            StartCoroutine(DelayedKeyManagerInit());
         }
 
         private IEnumerator DelayedInit()
@@ -118,6 +125,24 @@ namespace YajaGame.UI
             }
         }
 
+        private IEnumerator DelayedKeyManagerInit()
+        {
+            yield return new WaitForSeconds(0.5f);
+            Stage2KeyManager keyManager = FindObjectOfType<Stage2KeyManager>();
+            if (keyManager != null)
+            {
+                keyManager.OnKeyCountChanged.AddListener(UpdateKeyCount);
+                Debug.Log("[RoundUI] Stage2KeyManager 이벤트 연결 완료!");
+
+                // 초기 키 수 표시
+                UpdateKeyCount(keyManager.KeysCollected);
+            }
+            else
+            {
+                Debug.Log("[RoundUI] Stage2KeyManager를 찾을 수 없습니다. (Stage2가 아닐 수 있음)");
+            }
+        }
+
         private void OnDestroy()
         {
             // 이벤트 해제
@@ -126,6 +151,13 @@ namespace YajaGame.UI
                 RoundManager.Instance.OnRoundStart.RemoveListener(OnRoundStart);
                 RoundManager.Instance.OnRoundClear.RemoveListener(OnRoundClear);
                 RoundManager.Instance.OnDroneCountChanged.RemoveListener(UpdateDroneCount);
+            }
+
+            // Stage2KeyManager 이벤트 해제
+            Stage2KeyManager keyManager = FindObjectOfType<Stage2KeyManager>();
+            if (keyManager != null)
+            {
+                keyManager.OnKeyCountChanged.RemoveListener(UpdateKeyCount);
             }
         }
 
@@ -233,45 +265,72 @@ namespace YajaGame.UI
         }
 
         /// <summary>
-        /// 남은 드론 수 업데이트
+        /// 남은 드론 수 업데이트 - 단일 이미지로 동적 스프라이트 변경
         /// </summary>
         private void UpdateDroneCount(int count)
         {
-            Debug.Log($"[RoundUI] UpdateDroneCount 호출: {count}");
+            Debug.Log($"[RoundUI] UpdateDroneCount 호출: 남은 드론 수 = {count}");
 
-            // 텍스트로 표시
-            if (enemyCountText != null)
+            // 드론 카운트 패널 활성화
+            if (droneCountPanel != null)
             {
-                enemyCountText.text = count.ToString();
+                droneCountPanel.SetActive(true);
             }
 
-            // 단일 이미지 + 스프라이트 배열 방식 (간단 버전)
-            if (enemyCountImage != null && enemyCountSprites != null && enemyCountSprites.Length > 0)
+            // 단일 이미지 + 스프라이트 배열 방식으로 드론 수 표시
+            if (droneCountImage != null && droneCountSprites != null && droneCountSprites.Length > 0)
             {
-                int index = Mathf.Clamp(count, 0, enemyCountSprites.Length - 1);
-                Debug.Log($"[RoundUI] 스프라이트 변경: index={index}, 배열크기={enemyCountSprites.Length}");
-                if (enemyCountSprites[index] != null)
+                // 드론 수를 배열 인덱스 범위로 제한 (0~5)
+                int spriteIndex = Mathf.Clamp(count, 0, droneCountSprites.Length - 1);
+                
+                if (droneCountSprites[spriteIndex] != null)
                 {
-                    enemyCountImage.sprite = enemyCountSprites[index];
-                    Debug.Log($"[RoundUI] 스프라이트 적용: {enemyCountSprites[index].name}");
+                    droneCountImage.sprite = droneCountSprites[spriteIndex];
+                    Debug.Log($"[RoundUI] 드론 수 이미지 변경: 드론-{count} (인덱스: {spriteIndex})");
+                }
+                else
+                {
+                    Debug.LogError($"[RoundUI] 드론 스프라이트가 null입니다. 인덱스: {spriteIndex}");
                 }
             }
             else
             {
-                Debug.LogWarning($"[RoundUI] enemyCountImage={enemyCountImage != null}, sprites={enemyCountSprites?.Length ?? 0}");
+                Debug.LogWarning($"[RoundUI] 드론 카운트 이미지 설정 확인 필요 - Image: {droneCountImage != null}, Sprites: {droneCountSprites?.Length ?? 0}개");
+            }
+        }
+
+        /// <summary>
+        /// 수집된 키 수 업데이트 - 단일 이미지로 동적 스프라이트 변경
+        /// </summary>
+        private void UpdateKeyCount(int count)
+        {
+            Debug.Log($"[RoundUI] UpdateKeyCount 호출: 수집된 키 수 = {count}");
+
+            // 키 카운트 패널 활성화
+            if (keyCountPanel != null)
+            {
+                keyCountPanel.SetActive(true);
             }
 
-            // 이미지로 표시 (드론 카운트 이미지 사용) - 기존 방식
-            if (droneCountImages != null && droneCountImages.Length > 0)
+            // 단일 이미지 + 스프라이트 배열 방식으로 키 수 표시
+            if (keyCountImage != null && keyCountSprites != null && keyCountSprites.Length > 0)
             {
-                for (int i = 0; i < droneCountImages.Length; i++)
+                // 키 수를 배열 인덱스 범위로 제한 (0~5)
+                int spriteIndex = Mathf.Clamp(count, 0, keyCountSprites.Length - 1);
+                
+                if (keyCountSprites[spriteIndex] != null)
                 {
-                    if (droneCountImages[i] != null)
-                    {
-                        // 인덱스가 count와 같은 이미지만 활성화
-                        droneCountImages[i].gameObject.SetActive(i == count);
-                    }
+                    keyCountImage.sprite = keyCountSprites[spriteIndex];
+                    Debug.Log($"[RoundUI] 키 수 이미지 변경: key-{count} (인덱스: {spriteIndex})");
                 }
+                else
+                {
+                    Debug.LogError($"[RoundUI] 키 스프라이트가 null입니다. 인덱스: {spriteIndex}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[RoundUI] 키 카운트 이미지 설정 확인 필요 - Image: {keyCountImage != null}, Sprites: {keyCountSprites?.Length ?? 0}개");
             }
         }
 

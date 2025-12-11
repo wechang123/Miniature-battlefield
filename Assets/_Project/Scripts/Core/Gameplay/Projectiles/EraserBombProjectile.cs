@@ -56,11 +56,14 @@ namespace YajaGame.Gameplay.Projectiles
 
         private void Update()
         {
-            // 퓨즈 시간 체크 (부모 클래스의 _spawnTime 사용)
-            if (fuseTime > 0 && !_hasExploded && Time.time - _spawnTime >= fuseTime)
+            // 퓨즈 시간 체크 - 이미 폭발했거나 퓨즈가 없으면 체크하지 않음 (성능 최적화)
+            if (fuseTime > 0 && !_hasExploded)
             {
-                Debug.Log("[EraserBomb] 퓨즈 시간 종료. 폭발!");
-                Explode(transform.position);
+                if (Time.time - _spawnTime >= fuseTime)
+                {
+                    Debug.Log("[EraserBomb] 퓨즈 시간 종료. 폭발!");
+                    Explode(transform.position);
+                }
             }
         }
 

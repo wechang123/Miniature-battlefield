@@ -115,20 +115,10 @@ namespace YajaGame.Gameplay
             Debug.Log("[ItemThrowSystem] 아이템 떨어뜨림 - 던지기 시스템 비활성화");
         }
 
-        private float _debugTimer = 0f;
-
         private void Update()
         {
             // 던지기 시스템이 비활성화되어 있으면 리턴
             if (!isEnabled) return;
-
-            // 디버그: 5초마다 로그
-            _debugTimer += Time.deltaTime;
-            if (_debugTimer >= 5f)
-            {
-                Debug.Log("[ItemThrowSystem] Update 호출 중! (5초마다)");
-                _debugTimer = 0f;
-            }
 
             // 던지기 입력 처리 (마우스 왼쪽 클릭)
             if (Input.GetMouseButtonDown(0)) // 마우스 좌클릭

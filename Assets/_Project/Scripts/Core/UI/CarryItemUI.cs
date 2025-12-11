@@ -52,11 +52,15 @@ namespace YajaGame.UI
 
         private void Update()
         {
-            // 펄스 애니메이션
+            // 펄스 애니메이션 - 활성화되고 애니메이션이 켜진 경우에만 처리
             if (enablePulseAnimation && carryPanel != null && carryPanel.activeSelf)
             {
-                float pulse = 1f + (Mathf.Sin(Time.time * pulseSpeed) * 0.5f + 0.5f) * (pulseScale - 1f);
-                carryPanel.transform.localScale = _originalScale * pulse;
+                // 프레임 스킵을 통한 성능 최적화 (매 3프레임마다 업데이트)
+                if (Time.frameCount % 3 == 0)
+                {
+                    float pulse = 1f + (Mathf.Sin(Time.time * pulseSpeed) * 0.5f + 0.5f) * (pulseScale - 1f);
+                    carryPanel.transform.localScale = _originalScale * pulse;
+                }
             }
         }
 
